@@ -4,145 +4,366 @@
 <head>
 
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
-
-    <title>🔄 คืนยา</title>
+    <title>คืนยา</title>
 
     <style>
 
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fa;
-            margin: 0;
+        * {
+            box-sizing: border-box;
         }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+
+        /* Header */
 
         header {
-            background: #1976d2;
+            background: linear-gradient(135deg, #16a34a, #059669);
             color: white;
             text-align: center;
-            padding: 25px;
+            padding: 38px 20px;
+            box-shadow: 0 4px 15px rgba(22, 163, 74, 0.2);
         }
+
+        header .icon {
+            font-size: 45px;
+            margin-bottom: 5px;
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        header p {
+            margin: 8px 0 0;
+            opacity: 0.9;
+        }
+
+
+        /* Container */
 
         .container {
-            width: 90%;
+            width: 92%;
             max-width: 900px;
-            margin: 30px auto;
+            margin: 35px auto 60px;
         }
+
+
+        /* Back */
 
         .back {
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
             margin-bottom: 20px;
             padding: 10px 16px;
-            background: #757575;
-            color: white;
+            background: white;
+            color: #374151;
             text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+            transition: 0.2s;
         }
 
-        .card {
-            background: white;
-            padding: 25px;
+        .back:hover {
+            transform: translateX(-3px);
+        }
+
+
+        /* Message */
+
+        .message {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            padding: 14px 16px;
             border-radius: 12px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+
+        /* Info */
+
+        .info {
+            background: #eff6ff;
+            color: #1d4ed8;
+            border: 1px solid #bfdbfe;
+            padding: 18px;
+            border-radius: 14px;
+            margin-bottom: 25px;
+            line-height: 1.7;
+        }
+
+        .info-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+
+        /* Loan */
+
+        .loan {
+            background: white;
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 25px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.07);
+            border: 1px solid #eef1f6;
+        }
+
+
+        .loan-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eef1f6;
+            margin-bottom: 20px;
+        }
+
+        .drug-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 15px;
+            background: #ecfdf5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .loan-header h2 {
+            margin: 0;
+            font-size: 22px;
+        }
+
+        .loan-header p {
+            margin: 4px 0 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+
+        /* Details */
+
+        .details {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
             margin-bottom: 25px;
         }
 
-        .message {
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        .detail {
+            background: #f8fafc;
+            padding: 14px;
+            border-radius: 12px;
         }
 
-        .loan {
-            border: 1px solid #ddd;
-            border-radius: 10px;
+        .detail-label {
+            color: #6b7280;
+            font-size: 13px;
+            margin-bottom: 5px;
+        }
+
+        .detail-value {
+            font-weight: 600;
+        }
+
+
+        /* Unit section */
+
+        .unit-section {
+            background: #f8fafc;
+            border-radius: 15px;
             padding: 20px;
-            margin-bottom: 20px;
-            background: white;
         }
 
-        .loan h3 {
-            margin-top: 0;
-            color: #1976d2;
+        .unit-section-title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 5px;
         }
+
+        .unit-section-subtitle {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+
+
+        /* Units */
+
+        .unit {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 13px;
+            padding: 16px;
+            margin-bottom: 12px;
+        }
+
+        .unit:last-child {
+            margin-bottom: 0;
+        }
+
+        .unit-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .unit-number {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .unit-badge {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+
+        /* Input */
 
         label {
             display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 7px;
         }
 
         input {
             width: 100%;
-            box-sizing: border-box;
-            padding: 12px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: 13px;
+            border: 1px solid #d1d5db;
+            border-radius: 10px;
             font-size: 16px;
+            outline: none;
+            transition: 0.2s;
         }
 
+        input:focus {
+            border-color: #16a34a;
+            box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.1);
+        }
+
+        .input-hint {
+            margin-top: 5px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+
+
+        /* Example */
+
+        .example {
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 18px;
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        .example-title {
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+
+        /* Button */
+
         button {
-            margin-top: 20px;
-            padding: 12px 20px;
+            width: 100%;
+            margin-top: 22px;
+            padding: 15px;
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            background: #1976d2;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #16a34a, #059669);
             color: white;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(22, 163, 74, 0.2);
+            transition: 0.2s;
         }
 
         button:hover {
-            background: #125ca1;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(22, 163, 74, 0.25);
         }
 
-        .unit {
-            background: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin-top: 12px;
-        }
 
-        .unit-title {
-            font-weight: bold;
-            font-size: 17px;
-            margin-bottom: 8px;
-            color: #333;
-        }
-
-        .info {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .example {
-            background: #fff8e1;
-            color: #795548;
-            padding: 15px;
-            border-radius: 8px;
-            margin-top: 15px;
-        }
+        /* Empty */
 
         .empty {
+            background: white;
+            border-radius: 20px;
+            padding: 55px 20px;
             text-align: center;
-            color: #777;
-            padding: 30px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.07);
         }
 
-        .unit-count {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 15px;
+        .empty-icon {
+            font-size: 55px;
+            margin-bottom: 12px;
+        }
+
+        .empty h2 {
+            margin: 0 0 8px;
+        }
+
+        .empty p {
+            margin: 0;
+            color: #6b7280;
+        }
+
+
+        /* Mobile */
+
+        @media (max-width: 650px) {
+
+            header {
+                padding: 30px 15px;
+            }
+
+            header h1 {
+                font-size: 25px;
+            }
+
+            .container {
+                width: 92%;
+                margin-top: 25px;
+            }
+
+            .loan {
+                padding: 20px;
+            }
+
+            .details {
+                grid-template-columns: 1fr;
+            }
+
+            .unit-section {
+                padding: 15px;
+            }
+
         }
 
     </style>
@@ -155,20 +376,34 @@
 
 <header>
 
-    <h1>🔄 คืนยา</h1>
+    <div class="icon">
+        🔄
+    </div>
 
-    <p>บันทึกยาที่เหลือจากการยืม</p>
+    <h1>
+        คืนยา
+    </h1>
+
+    <p>
+        บันทึกยาที่เหลือจากการยืม
+    </p>
 
 </header>
+
 
 
 <div class="container">
 
 
+    <!-- กลับหน้าหลัก -->
+
     <a href="{{ url_for('home') }}" class="back">
         ← กลับหน้าหลัก
     </a>
 
+
+
+    <!-- Flash Message -->
 
     {% with messages = get_flashed_messages() %}
 
@@ -177,7 +412,7 @@
             {% for message in messages %}
 
                 <div class="message">
-                    {{ message }}
+                    ✅ {{ message }}
                 </div>
 
             {% endfor %}
@@ -187,33 +422,36 @@
     {% endwith %}
 
 
+
+    <!-- วิธีกรอก -->
+
     <div class="info">
 
-        <b>📋 วิธีกรอกเปอร์เซ็นต์</b>
-
-        <br><br>
+        <div class="info-title">
+            📋 วิธีกรอกเปอร์เซ็นต์
+        </div>
 
         <b>100%</b> = ยาเหลือเต็ม
 
-        <br>
+        &nbsp;&nbsp;•&nbsp;&nbsp;
 
         <b>80%</b> = เหลือประมาณ 80%
 
-        <br>
+        &nbsp;&nbsp;•&nbsp;&nbsp;
 
         <b>50%</b> = เหลือครึ่งหนึ่ง
 
-        <br>
+        &nbsp;&nbsp;•&nbsp;&nbsp;
 
         <b>0%</b> = ใช้หมดแล้ว
 
-        <br><br>
+        <br>
 
-        <b>⚠️ สำคัญ:</b>
-        ยาทุกชนิดจะแยกเป็นรายชิ้น
+        ⚠️ ยาทุกชนิดจะแยกเป็นรายชิ้น
         ไม่ว่าจะเป็น เม็ด ขวด หลอด กล่อง หรือหน่วยอื่น ๆ
 
     </div>
+
 
 
     {% if loans %}
@@ -225,29 +463,80 @@
         <div class="loan">
 
 
-            <h3>
-                💊 {{ loan["drug_name"] }}
-            </h3>
+            <!-- Drug Header -->
+
+            <div class="loan-header">
+
+                <div class="drug-icon">
+                    💊
+                </div>
+
+                <div>
+
+                    <h2>
+                        {{ loan["drug_name"] }}
+                    </h2>
+
+                    <p>
+                        รายการยืมที่รอการคืน
+                    </p>
+
+                </div>
+
+            </div>
 
 
-            <p>
-                <b>ผู้ยืม:</b>
-                {{ loan["borrower"] }}
-            </p>
+
+            <!-- Details -->
+
+            <div class="details">
 
 
-            <p>
-                <b>จำนวนที่ยืม:</b>
-                {{ loan["quantity"]|float|round(2) }}
-                {{ loan["drug_unit"] }}
-            </p>
+                <div class="detail">
+
+                    <div class="detail-label">
+                        👤 ผู้ยืม
+                    </div>
+
+                    <div class="detail-value">
+                        {{ loan["borrower"] }}
+                    </div>
+
+                </div>
 
 
-            <p>
-                <b>วันที่ยืม:</b>
-                {{ loan["borrow_date"] }}
-            </p>
+                <div class="detail">
 
+                    <div class="detail-label">
+                        📦 จำนวนที่ยืม
+                    </div>
+
+                    <div class="detail-value">
+                        {{ loan["quantity"]|float|round(2) }}
+                        {{ loan["drug_unit"] }}
+                    </div>
+
+                </div>
+
+
+                <div class="detail">
+
+                    <div class="detail-label">
+                        📅 วันที่ยืม
+                    </div>
+
+                    <div class="detail-value">
+                        {{ loan["borrow_date"] }}
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+
+            <!-- Return Form -->
 
             <form
                 action="{{ url_for('return_drug_submit') }}"
@@ -262,32 +551,24 @@
                 >
 
 
-                <div class="info">
-
-                    <b>🔍 คืนยาเป็นรายชิ้น</b>
-
-                    <br><br>
-
-                    กรุณากรอกเปอร์เซ็นต์ที่เหลือ
-                    ของยา <b>แต่ละชิ้น</b>
-
-                    <br>
-
-                    ระบบจะคำนวณจำนวนยาที่คืนเข้าสต๊อกให้อัตโนมัติ
-
-                </div>
-
 
                 {% if loan["loan_units"] %}
 
 
-                    <div class="unit-count">
+                <div class="unit-section">
 
-                        จำนวนที่ต้องกรอก:
-                        <b>{{ loan["loan_units"]|length }}</b>
-                        ชิ้น
+
+                    <div class="unit-section-title">
+                        🔍 คืนยาเป็นรายชิ้น
+                    </div>
+
+                    <div class="unit-section-subtitle">
+
+                        กรอกเปอร์เซ็นต์ยาที่เหลือของ
+                        <b>แต่ละชิ้น</b>
 
                     </div>
+
 
 
                     {% for unit in loan["loan_units"] %}
@@ -296,10 +577,18 @@
                     <div class="unit">
 
 
-                        <div class="unit-title">
+                        <div class="unit-top">
 
-                            💊 {{ loan["drug_unit"] }}
-                            ที่ {{ unit["unit_number"] }}
+                            <div class="unit-number">
+
+                                💊 {{ loan["drug_unit"] }}
+                                ที่ {{ unit["unit_number"] }}
+
+                            </div>
+
+                            <div class="unit-badge">
+                                รายการที่ {{ unit["unit_number"] }}
+                            </div>
 
                         </div>
 
@@ -322,100 +611,103 @@
                         >
 
 
+                        <div class="input-hint">
+
+                            กรอกค่าระหว่าง 0–100%
+
+                        </div>
+
+
                     </div>
 
 
                     {% endfor %}
 
 
+
+                    <!-- Example -->
+
                     <div class="example">
 
-                        <b>ตัวอย่างการกรอก</b>
+                        <div class="example-title">
+                            💡 ตัวอย่าง
+                        </div>
 
-                        <br><br>
 
                         {% if loan["loan_units"]|length >= 5 %}
 
-                            {{ loan["drug_unit"] }} 1 → 80%
+                            รายการที่ 1 → 80%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 2 → 50%
+                            รายการที่ 2 → 50%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 3 → 20%
+                            รายการที่ 3 → 20%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 4 → 100%
+                            รายการที่ 4 → 100%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 5 → 0%
+                            รายการที่ 5 → 0%
 
                         {% elif loan["loan_units"]|length >= 3 %}
 
-                            {{ loan["drug_unit"] }} 1 → 80%
+                            รายการที่ 1 → 80%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 2 → 50%
+                            รายการที่ 2 → 50%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 3 → 100%
+                            รายการที่ 3 → 100%
 
                         {% elif loan["loan_units"]|length == 2 %}
 
-                            {{ loan["drug_unit"] }} 1 → 80%
+                            รายการที่ 1 → 80%
 
                             <br>
 
-                            {{ loan["drug_unit"] }} 2 → 50%
+                            รายการที่ 2 → 50%
 
                         {% else %}
 
-                            {{ loan["drug_unit"] }} 1 → 80%
+                            รายการที่ 1 → 80%
 
                         {% endif %}
 
-                        <br><br>
 
-                        ระบบจะนำเปอร์เซ็นต์ของแต่ละชิ้น
-                        มาคำนวณจำนวนที่คืนเข้าสต๊อก
+                        <br>
+
+                        ระบบจะคำนวณจำนวนที่คืนเข้าสต๊อก
+                        จากเปอร์เซ็นต์ของแต่ละรายการอัตโนมัติ
 
                     </div>
+
+
+                </div>
+
+
+                <button type="submit">
+
+                    ✅ ยืนยันคืนยา
+
+                </button>
 
 
                 {% else %}
 
 
-                    <div class="message">
+                <div class="message">
 
-                        ⚠️ รายการนี้ยังไม่มีข้อมูลแยกเป็นรายชิ้น
+                    ⚠️ รายการนี้ยังไม่มีข้อมูลแยกเป็นรายชิ้น
 
-                    </div>
+                </div>
 
-
-                    <p>
-
-                        กรุณาตรวจสอบว่ารายการนี้ถูกสร้างหลังจาก
-                        เปิดใช้ระบบแยกยารายชิ้นแล้ว
-
-                    </p>
-
-
-                {% endif %}
-
-
-                {% if loan["loan_units"] %}
-
-                    <button type="submit">
-
-                        ✅ ยืนยันคืนยา
-
-                    </button>
 
                 {% endif %}
 
@@ -432,13 +724,19 @@
     {% else %}
 
 
-        <div class="card">
+        <div class="empty">
 
-            <div class="empty">
-
-                🎉 ไม่มีรายการยาที่รอคืน
-
+            <div class="empty-icon">
+                🎉
             </div>
+
+            <h2>
+                ไม่มีรายการยาที่รอคืน
+            </h2>
+
+            <p>
+                ขณะนี้ไม่มีรายการยาที่ต้องดำเนินการคืน
+            </p>
 
         </div>
 

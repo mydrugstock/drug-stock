@@ -8,106 +8,586 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>คืนกล่องยา</title>
+    <title>🔄 คืนกล่องยา</title>
+
 
     <style>
 
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fa;
-            margin: 0;
-            padding: 30px;
-        }
-
-        .container {
-            max-width: 900px;
-            margin: auto;
-        }
-
-        /* ปุ่มกลับหน้าหลัก */
-
-        .top-back {
-            display: inline-block;
-            margin-bottom: 20px;
-            padding: 10px 16px;
-            background: #757575;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
-        }
-
-        .top-back:hover {
-            background: #555555;
-        }
-
-        .card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow:
-                0 2px 8px rgba(0,0,0,0.08);
-        }
-
-        h1 {
-            margin-top: 0;
-        }
-
-        .info {
-            background: #e3f2fd;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .important {
-            font-weight: bold;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border-bottom: 1px solid #ddd;
-            text-align: left;
-        }
-
-        th {
-            background: #eeeeee;
-        }
-
-        input {
-            padding: 10px;
-            width: 120px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+        * {
             box-sizing: border-box;
         }
 
-        button {
-            padding: 10px 15px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
+
+        body {
+
+            margin: 0;
+
+            font-family:
+                Arial,
+                "Noto Sans Thai",
+                sans-serif;
+
+            background: #f4f7fb;
+
+            color: #1f2937;
+
+        }
+
+
+        /* ================= HEADER ================= */
+
+        header {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2e7d32,
+                    #66bb6a
+                );
+
             color: white;
-            background: #1976d2;
+
+            padding: 32px 20px;
+
+            box-shadow:
+                0 4px 15px
+                rgba(46,125,50,0.25);
+
         }
 
-        .success {
-            background: #2e7d32;
+
+        .header-content {
+
+            width: 92%;
+
+            max-width: 900px;
+
+            margin: auto;
+
         }
 
-        .back {
-            background: #757575;
+
+        header h1 {
+
+            margin: 0;
+
+            font-size: 30px;
+
         }
+
+
+        header p {
+
+            margin: 8px 0 0;
+
+            opacity: 0.9;
+
+            font-size: 15px;
+
+        }
+
+
+        /* ================= CONTAINER ================= */
+
+        .container {
+
+            width: 92%;
+
+            max-width: 900px;
+
+            margin: 30px auto 50px;
+
+        }
+
+
+        /* ================= BACK ================= */
+
+        .top-back {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 6px;
+
+            margin-bottom: 22px;
+
+            padding: 11px 18px;
+
+            background: white;
+
+            color: #374151;
+
+            text-decoration: none;
+
+            border-radius: 10px;
+
+            font-weight: bold;
+
+            box-shadow:
+                0 3px 12px
+                rgba(0,0,0,0.07);
+
+            transition: 0.2s;
+
+        }
+
+
+        .top-back:hover {
+
+            transform:
+                translateY(-2px);
+
+            box-shadow:
+                0 5px 15px
+                rgba(0,0,0,0.12);
+
+        }
+
+
+        /* ================= CARD ================= */
+
+        .card {
+
+            background: white;
+
+            padding: 28px;
+
+            border-radius: 18px;
+
+            box-shadow:
+                0 5px 20px
+                rgba(15,23,42,0.07);
+
+        }
+
+
+        .card h2 {
+
+            margin-top: 0;
+
+            margin-bottom: 22px;
+
+            font-size: 22px;
+
+        }
+
+
+        /* ================= BOX TITLE ================= */
+
+        .box-title {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+            margin-bottom: 22px;
+
+        }
+
+
+        .box-icon {
+
+            width: 50px;
+
+            height: 50px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            border-radius: 14px;
+
+            background: #e8f5e9;
+
+            font-size: 25px;
+
+        }
+
+
+        .box-title h2 {
+
+            margin: 0;
+
+        }
+
+
+        .box-number {
+
+            color: #2e7d32;
+
+        }
+
+
+        /* ================= INFO ================= */
+
+        .info {
+
+            background: #eff6ff;
+
+            border: 1px solid #bfdbfe;
+
+            color: #1e40af;
+
+            padding: 18px 20px;
+
+            border-radius: 13px;
+
+            margin-bottom: 25px;
+
+            line-height: 1.7;
+
+        }
+
+
+        .info p {
+
+            margin: 5px 0;
+
+        }
+
+
+        .important {
+
+            font-weight: bold;
+
+            color: #1d4ed8;
+
+        }
+
+
+        /* ================= TABLE ================= */
+
+        .table-wrapper {
+
+            overflow-x: auto;
+
+            border-radius: 12px;
+
+            border: 1px solid #e5e7eb;
+
+        }
+
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 650px;
+
+        }
+
+
+        th {
+
+            padding: 15px 12px;
+
+            background: #f1f5f9;
+
+            color: #475569;
+
+            font-size: 14px;
+
+            text-align: center;
+
+            border-bottom:
+                2px solid #e2e8f0;
+
+        }
+
+
+        td {
+
+            padding: 15px 12px;
+
+            text-align: center;
+
+            border-bottom:
+                1px solid #e5e7eb;
+
+            font-size: 15px;
+
+        }
+
+
+        tbody tr:last-child td {
+
+            border-bottom: none;
+
+        }
+
+
+        tbody tr:hover {
+
+            background: #f8fafc;
+
+        }
+
+
+        .drug-name {
+
+            font-weight: bold;
+
+            text-align: left;
+
+        }
+
+
+        .original {
+
+            font-weight: bold;
+
+            color: #374151;
+
+        }
+
 
         .unit-text {
-            color: #666;
+
+            color: #6b7280;
+
+        }
+
+
+        /* ================= INPUT ================= */
+
+        .remaining-input {
+
+            width: 140px;
+
+            padding: 12px;
+
+            border: 2px solid #d1d5db;
+
+            border-radius: 10px;
+
+            text-align: center;
+
+            font-size: 16px;
+
+            font-weight: bold;
+
+            outline: none;
+
+            transition: 0.2s;
+
+        }
+
+
+        .remaining-input:focus {
+
+            border-color: #2e7d32;
+
+            box-shadow:
+                0 0 0 3px
+                rgba(46,125,50,0.12);
+
+        }
+
+
+        /* ================= CALCULATION HINT ================= */
+
+        .hint {
+
+            margin-top: 18px;
+
+            padding: 14px 16px;
+
+            background: #f0fdf4;
+
+            border: 1px solid #bbf7d0;
+
+            color: #166534;
+
+            border-radius: 11px;
+
+            line-height: 1.6;
+
+        }
+
+
+        /* ================= BUTTONS ================= */
+
+        .actions {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 10px;
+
+            margin-top: 25px;
+
+        }
+
+
+        button {
+
+            border: none;
+
+            border-radius: 10px;
+
+            padding: 13px 20px;
+
+            cursor: pointer;
+
+            font-size: 15px;
+
+            font-weight: bold;
+
+            transition: 0.2s;
+
+        }
+
+
+        button:hover {
+
+            transform:
+                translateY(-1px);
+
+        }
+
+
+        .success {
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #2e7d32,
+                    #43a047
+                );
+
+            color: white;
+
+        }
+
+
+        .success:hover {
+
+            box-shadow:
+                0 5px 15px
+                rgba(46,125,50,0.25);
+
+        }
+
+
+        .back {
+
+            background: #64748b;
+
+            color: white;
+
+        }
+
+
+        .back:hover {
+
+            background: #475569;
+
+        }
+
+
+        /* ================= EMPTY ================= */
+
+        .empty {
+
+            text-align: center;
+
+            padding: 40px;
+
+            color: #6b7280;
+
+        }
+
+
+        /* ================= RESPONSIVE ================= */
+
+        @media (max-width: 700px) {
+
+
+            header {
+
+                padding: 25px 16px;
+
+            }
+
+
+            header h1 {
+
+                font-size: 25px;
+
+            }
+
+
+            .container {
+
+                width: 94%;
+
+                margin-top: 20px;
+
+            }
+
+
+            .card {
+
+                padding: 20px;
+
+                border-radius: 15px;
+
+            }
+
+
+            .box-title h2 {
+
+                font-size: 19px;
+
+            }
+
+
+            .box-icon {
+
+                width: 44px;
+
+                height: 44px;
+
+                font-size: 22px;
+
+            }
+
+
+            .remaining-input {
+
+                width: 120px;
+
+            }
+
+
+            table {
+
+                min-width: 620px;
+
+            }
+
+
+            .actions {
+
+                flex-direction: column;
+
+            }
+
+
+            .actions button {
+
+                width: 100%;
+
+            }
+
         }
 
     </style>
@@ -117,71 +597,141 @@
 
 <body>
 
+
+<!-- ================================================= -->
+<!-- HEADER -->
+<!-- ================================================= -->
+
+<header>
+
+    <div class="header-content">
+
+        <h1>🔄 คืนกล่องยา</h1>
+
+        <p>
+            ตรวจสอบยาในกล่องและนำจำนวนที่เหลือกลับเข้าสต๊อก
+        </p>
+
+    </div>
+
+</header>
+
+
+
 <div class="container">
 
 
-    <!-- ==================================================
-         กลับหน้าหลัก
-         ================================================== -->
+    <!-- ================================================= -->
+    <!-- BACK -->
+    <!-- ================================================= -->
 
     <a
-        href="{{ url_for('home') }}"
+        href="{{ url_for('box') }}"
         class="top-back"
     >
-
-        ← กลับหน้าหลัก
-
+        ← กลับหน้าจัดกล่อง
     </a>
+
 
 
     <div class="card">
 
-        <h1>
-            🔄 คืนกล่องที่ {{ box_unit['box_number'] }}
-        </h1>
+
+        <!-- ================================================= -->
+        <!-- TITLE -->
+        <!-- ================================================= -->
+
+        <div class="box-title">
 
 
-        <!-- ==================================================
-             ข้อมูลกล่อง
-             ================================================== -->
+            <div class="box-icon">
+                📦
+            </div>
 
-        <div class="info">
 
-            <p>
-                <strong>ผู้ยืม:</strong>
-                {{ box_unit['borrower'] }}
-            </p>
+            <div>
 
-            <p>
-                <strong>วันที่ยืม:</strong>
-                {{ box_unit['borrow_date'] }}
-            </p>
+                <h2>
 
-            <p class="important">
-                กรุณากรอก "จำนวนยาที่เหลือจริง"
-                ในกล่องที่นำมาคืน
-            </p>
+                    คืน
+                    <span class="box-number">
+                        กล่องที่ {{ box_unit['box_number'] }}
+                    </span>
 
-            <p>
-                ระบบจะคำนวณจำนวนยา
-                ที่ใช้ไปและจำนวนยา
-                ที่นำกลับเข้าสต๊อกให้อัตโนมัติ
-            </p>
+                </h2>
+
+            </div>
+
 
         </div>
 
 
-        <!-- ==================================================
-             แบบฟอร์มคืนกล่อง
-             ================================================== -->
+
+        <!-- ================================================= -->
+        <!-- BOX INFO -->
+        <!-- ================================================= -->
+
+        <div class="info">
+
+
+            <p>
+
+                <strong>
+                    👤 ผู้ยืม:
+                </strong>
+
+                {{ box_unit['borrower'] }}
+
+            </p>
+
+
+            <p>
+
+                <strong>
+                    📅 วันที่ยืม:
+                </strong>
+
+                {{ box_unit['borrow_date'] }}
+
+            </p>
+
+
+            <p class="important">
+
+                ⚠️ กรุณากรอก "จำนวนยาที่เหลือจริง"
+                ในกล่องที่นำมาคืน
+
+            </p>
+
+
+            <p>
+
+                ระบบจะคำนวณจำนวนยาที่ใช้ไป
+                และนำจำนวนยาที่เหลือกลับเข้าสต๊อกให้อัตโนมัติ
+
+            </p>
+
+
+        </div>
+
+
+
+        <!-- ================================================= -->
+        <!-- FORM -->
+        <!-- ================================================= -->
 
         <form
             method="POST"
             action="{{ url_for('return_box') }}"
+            onsubmit="
+                return confirm(
+                    'ตรวจสอบจำนวนยาที่เหลือทุกชนิดแล้วใช่หรือไม่?\\n\\nเมื่อยืนยัน ระบบจะคืนกล่องและปรับสต๊อกยา'
+                );
+            "
         >
 
 
-            <!-- ส่ง ID ของกล่องใบนี้ไปยัง app.py -->
+            <!-- ส่ง ID กล่อง -->
 
             <input
                 type="hidden"
@@ -190,136 +740,188 @@
             >
 
 
-            <!-- ==================================================
-                 ตารางยา
-                 ================================================== -->
 
-            <table>
+            <!-- ================================================= -->
+            <!-- TABLE -->
+            <!-- ================================================= -->
 
-                <thead>
+            <div class="table-wrapper">
 
-                    <tr>
+                <table>
 
-                        <th>
-                            ยา
-                        </th>
+                    <thead>
 
-                        <th>
-                            ตอนยืม
-                        </th>
+                        <tr>
 
-                        <th>
-                            เหลือเมื่อคืน
-                        </th>
+                            <th>
+                                💊 ยา
+                            </th>
 
-                        <th>
-                            หน่วย
-                        </th>
+                            <th>
+                                ตอนยืม
+                            </th>
 
-                    </tr>
+                            <th>
+                                เหลือเมื่อคืน
+                            </th>
 
-                </thead>
+                            <th>
+                                หน่วย
+                            </th>
 
+                        </tr>
 
-                <tbody>
-
-                {% for item in items %}
-
-                    <tr>
-
-                        <!-- ชื่อยา -->
-
-                        <td>
-                            {{ item['drug_name'] }}
-                        </td>
+                    </thead>
 
 
-                        <!-- จำนวนตอนยืม -->
-
-                        <td>
-                            {{ item['original_quantity'] }}
-                        </td>
+                    <tbody>
 
 
-                        <!-- จำนวนยาที่เหลือ -->
+                    {% for item in items %}
 
-                        <td>
-
-                            <input
-                                type="number"
-                                name="remaining_{{ item['id'] }}"
-                                min="0"
-                                max="{{ item['original_quantity'] }}"
-                                step="0.01"
-                                value="{{ item['original_quantity'] }}"
-                                required
-                            >
-
-                        </td>
+                        <tr>
 
 
-                        <!-- หน่วย -->
+                            <!-- ชื่อยา -->
 
-                        <td class="unit-text">
+                            <td class="drug-name">
 
-                            {{ item['drug_unit'] }}
+                                {{ item['drug_name'] }}
 
-                        </td>
-
-                    </tr>
-
-                {% endfor %}
-
-                </tbody>
-
-            </table>
+                            </td>
 
 
-            <br>
+
+                            <!-- จำนวนตอนยืม -->
+
+                            <td>
+
+                                <span class="original">
+
+                                    {{ item['original_quantity'] }}
+
+                                </span>
+
+                            </td>
 
 
-            <!-- ==================================================
-                 ปุ่มยืนยันคืน
-                 ================================================== -->
 
-            <button
-                type="submit"
-                class="success"
-                onclick="
-                    return confirm(
-                        'ตรวจสอบจำนวนยาที่เหลือแล้วใช่หรือไม่?'
-                    );
-                "
-            >
+                            <!-- จำนวนเหลือ -->
 
-                ✅ ยืนยันคืนกล่อง
-
-            </button>
+                            <td>
 
 
-            <!-- ==================================================
-                 ปุ่มยกเลิกกลับไปหน้าจัดกล่อง
-                 ================================================== -->
+                                <input
+                                    type="number"
 
-            <a href="{{ url_for('box') }}">
+                                    name="remaining_{{ item['id'] }}"
+
+                                    min="0"
+
+                                    max="{{ item['original_quantity'] }}"
+
+                                    step="0.01"
+
+                                    value="{{ item['original_quantity'] }}"
+
+                                    class="remaining-input"
+
+                                    required
+                                >
+
+
+                            </td>
+
+
+
+                            <!-- หน่วย -->
+
+                            <td class="unit-text">
+
+                                {{ item['drug_unit'] }}
+
+                            </td>
+
+
+                        </tr>
+
+                    {% endfor %}
+
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+
+
+            <!-- ================================================= -->
+            <!-- HINT -->
+            <!-- ================================================= -->
+
+            <div class="hint">
+
+                💡 <strong>ตัวอย่าง:</strong>
+
+                ถ้ายาตอนยืมมี 10 เม็ด
+                และนำกลับมาเหลือ 7 เม็ด
+                ให้กรอก <strong>7</strong>
+
+                <br>
+
+                ระบบจะถือว่าใช้ไป 3 เม็ด
+                และนำ 7 เม็ดกลับเข้าสต๊อก
+
+            </div>
+
+
+
+            <!-- ================================================= -->
+            <!-- BUTTONS -->
+            <!-- ================================================= -->
+
+            <div class="actions">
+
 
                 <button
-                    type="button"
-                    class="back"
+                    type="submit"
+                    class="success"
                 >
 
-                    ← ยกเลิก
+                    ✅ ยืนยันคืนกล่อง
 
                 </button>
 
-            </a>
+
+                <a
+                    href="{{ url_for('box') }}"
+                    style="text-decoration:none;"
+                >
+
+                    <button
+                        type="button"
+                        class="back"
+                    >
+
+                        ← ยกเลิก
+
+                    </button>
+
+                </a>
+
+
+            </div>
 
 
         </form>
 
+
     </div>
 
+
 </div>
+
 
 </body>
 

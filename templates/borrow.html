@@ -1,190 +1,645 @@
 <!DOCTYPE html>
 <html lang="th">
+
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>ยืม / ขอยา</title>
 
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fa;
-            margin: 0;
+
+        * {
+            box-sizing: border-box;
         }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #f4f7fb;
+            color: #1f2937;
+        }
+
+        /* Header */
 
         header {
-            background: #1976d2;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
             color: white;
             text-align: center;
-            padding: 25px;
+            padding: 38px 20px;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.2);
         }
 
-        .container {
-            width: 90%;
-            max-width: 700px;
-            margin: 30px auto;
+        header .icon {
+            font-size: 45px;
+            margin-bottom: 5px;
         }
+
+        header h1 {
+            margin: 0;
+            font-size: 30px;
+        }
+
+        header p {
+            margin: 8px 0 0;
+            opacity: 0.9;
+        }
+
+
+        /* Container */
+
+        .container {
+            width: 92%;
+            max-width: 700px;
+            margin: 35px auto 60px;
+        }
+
+
+        /* Back */
+
+        .back {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            margin-bottom: 20px;
+            padding: 10px 16px;
+            background: white;
+            color: #374151;
+            text-decoration: none;
+            border-radius: 10px;
+            font-weight: 600;
+            box-shadow: 0 3px 12px rgba(0,0,0,0.06);
+            transition: 0.2s;
+        }
+
+        .back:hover {
+            transform: translateX(-3px);
+        }
+
+
+        /* Message */
+
+        .message {
+            background: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+
+        /* Card */
 
         .card {
             background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            padding: 32px;
+            border-radius: 20px;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.07);
+            border: 1px solid #eef1f6;
+        }
+
+        .card-header {
+            margin-bottom: 28px;
+        }
+
+        .card-header h2 {
+            margin: 0 0 7px;
+            font-size: 24px;
+        }
+
+        .card-header p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+
+        /* Form */
+
+        .form-group {
+            margin-bottom: 22px;
         }
 
         label {
             display: block;
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-weight: bold;
+            margin-bottom: 8px;
+            font-weight: 600;
+            font-size: 15px;
+        }
+
+        .required {
+            color: #ef4444;
         }
 
         input,
         select {
             width: 100%;
-            padding: 12px;
-            box-sizing: border-box;
-            border: 1px solid #ccc;
-            border-radius: 8px;
+            padding: 13px 14px;
+            border: 1px solid #d1d5db;
+            border-radius: 11px;
             font-size: 16px;
+            background: white;
+            color: #1f2937;
+            outline: none;
+            transition: 0.2s;
         }
 
-        button {
-            margin-top: 25px;
-            width: 100%;
-            background: #1976d2;
-            color: white;
-            border: none;
+        input:focus,
+        select:focus {
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+
+        /* Type buttons */
+
+        .type-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .type-option {
+            position: relative;
+        }
+
+        .type-option input {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .type-label {
+            display: block;
+            text-align: center;
             padding: 14px;
-            border-radius: 8px;
-            font-size: 17px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
             cursor: pointer;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .type-label:hover {
+            border-color: #93c5fd;
+        }
+
+        .type-option input:checked + .borrow-label {
+            border-color: #2563eb;
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+
+        .type-option input:checked + .request-label {
+            border-color: #16a34a;
+            background: #f0fdf4;
+            color: #15803d;
+        }
+
+
+        /* Search */
+
+        .search-box {
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .search-box input {
+            padding-left: 44px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 19px;
+            color: #9ca3af;
+            pointer-events: none;
+        }
+
+
+        /* Drug list */
+
+        .drug-list {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            max-height: 260px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .drug-item {
+            padding: 13px 15px;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+            transition: 0.15s;
+        }
+
+        .drug-item:last-child {
+            border-bottom: none;
+        }
+
+        .drug-item:hover {
+            background: #f8fafc;
+        }
+
+        .drug-item.selected {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+        }
+
+        .drug-name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .drug-stock {
+            margin-top: 4px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+        .no-result {
+            padding: 20px;
+            text-align: center;
+            color: #9ca3af;
+        }
+
+
+        /* Selected drug */
+
+        .selected-drug {
+            display: none;
+            margin-top: 12px;
+            padding: 13px 15px;
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 11px;
+            color: #1d4ed8;
+            font-size: 14px;
+        }
+
+
+        /* Quantity */
+
+        .quantity-hint {
+            margin-top: 6px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+
+
+        /* Button */
+
+        button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            color: white;
+            font-size: 17px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 5px 15px rgba(37, 99, 235, 0.2);
         }
 
         button:hover {
-            background: #125ca1;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
         }
 
-        /* ปุ่มกลับหน้าหลัก */
-        .back {
-            display: inline-block;
-            margin-bottom: 20px;
-            padding: 10px 16px;
-            background: #757575;
-            color: white;
-            text-decoration: none;
-            border-radius: 6px;
-            font-weight: bold;
+        button:active {
+            transform: translateY(0);
         }
 
-        .back:hover {
-            background: #555555;
+
+        /* Mobile */
+
+        @media (max-width: 600px) {
+
+            header {
+                padding: 30px 15px;
+            }
+
+            header h1 {
+                font-size: 25px;
+            }
+
+            .container {
+                width: 92%;
+                margin-top: 25px;
+            }
+
+            .card {
+                padding: 23px;
+            }
+
+            .type-buttons {
+                grid-template-columns: 1fr;
+            }
+
         }
 
-        .message {
-            background: #e8f5e9;
-            color: #2e7d32;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .stock {
-            margin-top: 5px;
-            color: #666;
-            font-size: 14px;
-        }
     </style>
+
 </head>
+
 
 <body>
 
+
 <header>
-    <h1>💊 ยืม / ขอยา</h1>
-    <p>ระบบยืมและขอยา</p>
+
+    <div class="icon">
+        💊
+    </div>
+
+    <h1>
+        ยืม / ขอยา
+    </h1>
+
+    <p>
+        ระบบจัดการการยืมและขอยา
+    </p>
+
 </header>
+
+
 
 <div class="container">
 
-    <!-- ปุ่มกลับหน้าหลัก -->
+
+    <!-- กลับหน้าหลัก -->
+
     <a href="{{ url_for('home') }}" class="back">
         ← กลับหน้าหลัก
     </a>
 
+
+
+    <!-- Flash Message -->
+
     {% with messages = get_flashed_messages() %}
+
         {% if messages %}
+
             {% for message in messages %}
+
                 <div class="message">
-                    {{ message }}
+                    ✅ {{ message }}
                 </div>
+
             {% endfor %}
+
         {% endif %}
+
     {% endwith %}
+
+
+
+    <!-- Form Card -->
 
     <div class="card">
 
-        <h2>📋 แบบฟอร์มยืม / ขอยา</h2>
 
-        <form action="{{ url_for('request_drug') }}" method="POST">
+        <div class="card-header">
 
-            <label>ชื่อผู้ขอ</label>
+            <h2>
+                📋 ทำรายการ
+            </h2>
 
-            <input
-                type="text"
-                name="requester"
-                placeholder="กรอกชื่อผู้ขอ"
-                required
-            >
+            <p>
+                กรอกข้อมูลด้านล่างเพื่อยืมหรือขอยา
+            </p>
 
-            <label>ประเภท</label>
+        </div>
 
-            <select name="transaction_type" required>
 
-                <option value="ยืม">
-                    ยืมยา
-                </option>
 
-                <option value="ขอ">
-                    ขอยา
-                </option>
+        <form
+            action="{{ url_for('request_drug') }}"
+            method="POST"
+        >
 
-            </select>
 
-            <label>เลือกยา</label>
+            <!-- ชื่อผู้ขอ -->
 
-            <select name="drug_id" required>
+            <div class="form-group">
 
-                <option value="">
-                    -- เลือกยา --
-                </option>
+                <label>
+                    ชื่อผู้ขอ <span class="required">*</span>
+                </label>
 
-                {% for drug in drugs %}
+                <input
+                    type="text"
+                    name="requester"
+                    placeholder="กรอกชื่อผู้ขอ"
+                    required
+                >
 
-                <option value="{{ drug['id'] }}">
+            </div>
 
-                    {{ drug['name'] }}
-                    (เหลือ {{ drug['quantity'] }} {{ drug['unit'] }})
 
-                </option>
 
-                {% endfor %}
+            <!-- ประเภท -->
 
-            </select>
+            <div class="form-group">
 
-            <label>จำนวน</label>
+                <label>
+                    ประเภท <span class="required">*</span>
+                </label>
 
-            <input
-                type="number"
-                name="quantity"
-                min="1"
-                placeholder="กรอกจำนวน"
-                required
-            >
+
+                <div class="type-buttons">
+
+
+                    <div class="type-option">
+
+                        <input
+                            type="radio"
+                            id="typeBorrow"
+                            name="transaction_type"
+                            value="ยืม"
+                            checked
+                        >
+
+                        <label
+                            for="typeBorrow"
+                            class="type-label borrow-label"
+                        >
+                            🔄 ยืมยา
+                        </label>
+
+                    </div>
+
+
+                    <div class="type-option">
+
+                        <input
+                            type="radio"
+                            id="typeRequest"
+                            name="transaction_type"
+                            value="ขอ"
+                        >
+
+                        <label
+                            for="typeRequest"
+                            class="type-label request-label"
+                        >
+                            📦 ขอยา
+                        </label>
+
+                    </div>
+
+
+                </div>
+
+            </div>
+
+
+
+            <!-- เลือกยา -->
+
+            <div class="form-group">
+
+                <label>
+                    เลือกยา <span class="required">*</span>
+                </label>
+
+
+                <!-- ช่องค้นหา -->
+
+                <div class="search-box">
+
+                    <span class="search-icon">
+                        🔍
+                    </span>
+
+                    <input
+                        type="text"
+                        id="drugSearch"
+                        placeholder="พิมพ์ชื่อยาเพื่อค้นหา..."
+                        autocomplete="off"
+                    >
+
+                </div>
+
+
+
+                <!-- รายการยา -->
+
+                <div
+                    class="drug-list"
+                    id="drugList"
+                >
+
+                    {% for drug in drugs %}
+
+                    <div
+                        class="drug-item"
+                        data-id="{{ drug['id'] }}"
+                        data-name="{{ drug['name'] | lower }}"
+                        data-unit="{{ drug['unit'] }}"
+                        data-quantity="{{ drug['quantity'] }}"
+                        onclick="selectDrug(this)"
+                    >
+
+                        <div class="drug-name">
+
+                            {{ drug['name'] }}
+
+                        </div>
+
+                        <div class="drug-stock">
+
+                            เหลือ {{ drug['quantity'] }}
+                            {{ drug['unit'] }}
+
+                        </div>
+
+                    </div>
+
+                    {% endfor %}
+
+
+                    <div
+                        class="no-result"
+                        id="noResult"
+                        style="display:none;"
+                    >
+                        🔍 ไม่พบยาที่ค้นหา
+                    </div>
+
+                </div>
+
+
+
+                <!-- hidden value ที่ส่งให้ Flask -->
+
+                <input
+                    type="hidden"
+                    name="drug_id"
+                    id="drug_id"
+                    required
+                >
+
+
+                <!-- ยาที่เลือก -->
+
+                <div
+                    class="selected-drug"
+                    id="selectedDrug"
+                >
+
+                    ✅ เลือก:
+                    <strong id="selectedDrugName"></strong>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- จำนวน -->
+
+            <div class="form-group">
+
+                <label>
+                    จำนวน <span class="required">*</span>
+                </label>
+
+                <input
+                    type="number"
+                    name="quantity"
+                    id="quantity"
+                    min="1"
+                    step="1"
+                    placeholder="กรอกจำนวน"
+                    required
+                >
+
+                <div class="quantity-hint">
+                    💡 ระบุจำนวนที่ต้องการยืมหรือขอ
+                </div>
+
+            </div>
+
+
+
+            <!-- Submit -->
 
             <button type="submit">
-                ✅ ยืนยันการยืม / ขอ
+
+                ✅ ยืนยันรายการ
+
             </button>
+
 
         </form>
 
@@ -192,5 +647,130 @@
 
 </div>
 
+
+
+<script>
+
+
+    /* ค้นหายา */
+
+    const searchInput =
+        document.getElementById("drugSearch");
+
+    const drugItems =
+        document.querySelectorAll(".drug-item");
+
+    const noResult =
+        document.getElementById("noResult");
+
+
+    searchInput.addEventListener("input", function () {
+
+        const keyword =
+            this.value.toLowerCase().trim();
+
+        let found = 0;
+
+
+        drugItems.forEach(function (item) {
+
+            const name =
+                item.dataset.name;
+
+            if (name.includes(keyword)) {
+
+                item.style.display = "block";
+
+                found++;
+
+            } else {
+
+                item.style.display = "none";
+
+            }
+
+        });
+
+
+        if (found === 0) {
+
+            noResult.style.display = "block";
+
+        } else {
+
+            noResult.style.display = "none";
+
+        }
+
+    });
+
+
+
+    /* เลือกยา */
+
+    function selectDrug(item) {
+
+        const drugId =
+            item.dataset.id;
+
+        const drugName =
+            item.querySelector(".drug-name").textContent.trim();
+
+
+        /* ใส่ ID ให้ Flask */
+
+        document.getElementById("drug_id").value =
+            drugId;
+
+
+        /* แสดงยาที่เลือก */
+
+        document.getElementById("selectedDrugName").textContent =
+            drugName;
+
+
+        document.getElementById("selectedDrug").style.display =
+            "block";
+
+
+        /* ลบ selected จากรายการอื่น */
+
+        drugItems.forEach(function (drug) {
+
+            drug.classList.remove("selected");
+
+        });
+
+
+        /* เพิ่ม selected ให้รายการที่เลือก */
+
+        item.classList.add("selected");
+
+    }
+
+
+    /* ป้องกันกดส่งโดยยังไม่ได้เลือกยา */
+
+    document.querySelector("form").addEventListener("submit", function (event) {
+
+        const drugId =
+            document.getElementById("drug_id").value;
+
+
+        if (!drugId) {
+
+            event.preventDefault();
+
+            alert("กรุณาเลือกยาก่อน");
+
+        }
+
+    });
+
+
+</script>
+
+
 </body>
+
 </html>
