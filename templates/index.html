@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>ระบบจัดการสต๊อกยา</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+        }
+
+        header {
+            background: #1976d2;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: 40px auto;
+        }
+
+        .section-title {
+            margin-top: 35px;
+            margin-bottom: 20px;
+        }
+
+        .menu {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .card {
+            background: white;
+            width: 180px;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        .icon {
+            font-size: 45px;
+        }
+
+        .card h2 {
+            font-size: 20px;
+            margin: 10px 0;
+        }
+
+        .card a {
+            display: block;
+            text-decoration: none;
+            background: #1976d2;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .card a:hover {
+            background: #125ca1;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>💊 ระบบจัดการสต๊อกยา</h1>
+
+</header>
+
+
+<div class="container">
+
+
+    <!-- ผู้ใช้งาน -->
+
+    <h2 class="section-title">
+        👤 ผู้ใช้งาน
+    </h2>
+
+
+    <div class="menu">
+
+
+        <!-- ยืม / ขอ -->
+
+        <div class="card">
+
+            <div class="icon">
+                💊
+            </div>
+
+            <h2>
+                ยืม / ขอ
+            </h2>
+
+            <a href="/borrow">
+                เข้าสู่ระบบ
+            </a>
+
+        </div>
+
+
+        <!-- คืน -->
+
+        <div class="card">
+
+            <div class="icon">
+                🔄
+            </div>
+
+            <h2>
+                คืน
+            </h2>
+
+            <a href="/return">
+                เข้าสู่ระบบ
+            </a>
+
+        </div>
+
+
+    </div>
+
+
+    <!-- Admin -->
+
+    <h2 class="section-title">
+        👨‍💼 Admin
+    </h2>
+
+
+    <div class="menu">
+
+
+        <!-- สต๊อก -->
+
+        <div class="card">
+
+            <div class="icon">
+                📦
+            </div>
+
+            <h2>
+                สต๊อก
+            </h2>
+
+            <a href="/stock">
+                จัดการ
+            </a>
+
+        </div>
+
+
+        <!-- จัดกล่อง -->
+
+        <div class="card">
+
+            <div class="icon">
+                🗃️
+            </div>
+
+            <h2>
+                จัดกล่อง
+            </h2>
+
+            <a href="/box">
+                จัดการ
+            </a>
+
+        </div>
+
+
+        <!-- รายงาน -->
+
+        <div class="card">
+
+            <div class="icon">
+                📊
+            </div>
+
+            <h2>
+                รายงาน
+            </h2>
+
+            <a href="/report">
+                ดูรายงาน
+            </a>
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

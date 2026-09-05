@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>รายงานการใช้งาน</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+
+            font-family:
+                Arial,
+                "Tahoma",
+                sans-serif;
+
+            background: #f4f6f8;
+
+            margin: 0;
+
+            padding: 30px;
+
+        }
+
+        .container {
+
+            max-width: 1300px;
+
+            margin: auto;
+
+            background: white;
+
+            padding: 30px;
+
+            border-radius: 15px;
+
+            box-shadow:
+                0 3px 12px
+                rgba(0, 0, 0, 0.1);
+
+        }
+
+        /* ปุ่มกลับหน้าหลัก */
+
+        .top-back {
+
+            display: inline-block;
+
+            margin-bottom: 20px;
+
+            padding: 10px 16px;
+
+            background: #757575;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 6px;
+
+            font-weight: bold;
+
+        }
+
+        .top-back:hover {
+
+            background: #555555;
+
+        }
+
+        h1 {
+
+            text-align: center;
+
+            margin-bottom: 10px;
+
+        }
+
+        .description {
+
+            text-align: center;
+
+            color: #666;
+
+            margin-bottom: 25px;
+
+        }
+
+        .table-container {
+
+            width: 100%;
+
+            overflow-x: auto;
+
+        }
+
+        table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            min-width: 950px;
+
+        }
+
+        th {
+
+            background: #673AB7;
+
+            color: white;
+
+            padding: 14px;
+
+        }
+
+        td {
+
+            padding: 12px;
+
+            border-bottom:
+                1px solid #ddd;
+
+            text-align: center;
+
+        }
+
+        tr:hover {
+
+            background: #f5f5f5;
+
+        }
+
+        .borrow {
+
+            color: #e67e22;
+
+            font-weight: bold;
+
+        }
+
+        .request {
+
+            color: #2980b9;
+
+            font-weight: bold;
+
+        }
+
+        .return {
+
+            color: #27ae60;
+
+            font-weight: bold;
+
+        }
+
+        .cancel {
+
+            color: #c0392b;
+
+            font-weight: bold;
+
+        }
+
+        .cancelled {
+
+            background: #ffecec;
+
+            color: #999;
+
+        }
+
+        .cancelled-text {
+
+            color: #c0392b;
+
+            font-weight: bold;
+
+        }
+
+        .cancel-button {
+
+            background: #e74c3c;
+
+            color: white;
+
+            border: none;
+
+            padding: 8px 12px;
+
+            border-radius: 6px;
+
+            cursor: pointer;
+
+        }
+
+        .cancel-button:hover {
+
+            background: #c0392b;
+
+        }
+
+        .cannot-cancel {
+
+            color: #999;
+
+        }
+
+        .empty {
+
+            padding: 30px;
+
+            color: #777;
+
+        }
+
+        .back-button {
+
+            display: inline-block;
+
+            margin-top: 25px;
+
+            padding: 12px 20px;
+
+            background: #555;
+
+            color: white;
+
+            text-decoration: none;
+
+            border-radius: 8px;
+
+        }
+
+        .back-button:hover {
+
+            background: #333;
+
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<div class="container">
+
+
+    <!-- กลับหน้าหลัก -->
+
+    <a
+        href="{{ url_for('home') }}"
+        class="top-back"
+    >
+
+        ← กลับหน้าหลัก
+
+    </a>
+
+
+    <h1>
+        📊 รายงานการใช้งาน
+    </h1>
+
+
+    <div class="description">
+
+        ประวัติการทำรายการของผู้ใช้งานทุกคน
+
+    </div>
+
+
+    <div class="table-container">
+
+
+        <table>
+
+
+            <thead>
+
+                <tr>
+
+                    <th>
+                        ลำดับ
+                    </th>
+
+                    <th>
+                        วัน / เวลา
+                    </th>
+
+                    <th>
+                        ผู้ทำรายการ
+                    </th>
+
+                    <th>
+                        ยา
+                    </th>
+
+                    <th>
+                        จำนวน
+                    </th>
+
+                    <th>
+                        ประเภท
+                    </th>
+
+                    <th>
+                        สถานะ
+                    </th>
+
+                    <th>
+                        การจัดการ
+                    </th>
+
+                </tr>
+
+            </thead>
+
+
+            <tbody>
+
+
+                {% for transaction in transactions %}
+
+                <tr
+                    {% if transaction["cancelled"] == 1 %}
+                        class="cancelled"
+                    {% endif %}
+                >
+
+
+                    <td>
+                        {{ transaction["id"] }}
+                    </td>
+
+
+                    <td>
+                        {{ transaction["transaction_date"] }}
+                    </td>
+
+
+                    <td>
+                        {{ transaction["requester"] }}
+                    </td>
+
+
+                    <td>
+                        {{ transaction["drug_name"] or "ไม่พบข้อมูลยา" }}
+                    </td>
+
+
+                    <td>
+
+                        {{ "%.2f"|format(transaction["quantity"]) }}
+
+                        {{ transaction["drug_unit"] or "" }}
+
+                    </td>
+
+
+                    <td>
+
+
+                        {% if transaction["transaction_type"] == "ยืม" %}
+
+                            <span class="borrow">
+                                ยืม
+                            </span>
+
+
+                        {% elif transaction["transaction_type"] == "ขอ" %}
+
+                            <span class="request">
+                                ขอ
+                            </span>
+
+
+                        {% elif transaction["transaction_type"] == "คืน" %}
+
+                            <span class="return">
+                                คืน
+                            </span>
+
+
+                        {% elif transaction["transaction_type"] == "ยกเลิก" %}
+
+                            <span class="cancel">
+                                ยกเลิก
+                            </span>
+
+
+                        {% else %}
+
+                            {{ transaction["transaction_type"] }}
+
+                        {% endif %}
+
+
+                    </td>
+
+
+                    <td>
+
+
+                        {% if transaction["cancelled"] == 1 %}
+
+                            <span class="cancelled-text">
+                                ยกเลิกแล้ว
+                            </span>
+
+                        {% else %}
+
+                            ปกติ
+
+                        {% endif %}
+
+
+                    </td>
+
+
+                    <td>
+
+
+                        {% if transaction["cancelled"] == 1 %}
+
+                            <span class="cannot-cancel">
+                                ยกเลิกแล้ว
+                            </span>
+
+
+                        {% elif transaction["transaction_type"] == "ยืม"
+                              or transaction["transaction_type"] == "ขอ" %}
+
+
+                            <form
+                                action="{{ url_for('cancel_transaction') }}"
+                                method="POST"
+                                onsubmit="return confirm('ยืนยันการยกเลิกรายการนี้หรือไม่? จำนวนยาจะถูกนำกลับเข้าสต๊อก');"
+                            >
+
+
+                                <input
+                                    type="hidden"
+                                    name="transaction_id"
+                                    value="{{ transaction['id'] }}"
+                                >
+
+
+                                <button
+                                    type="submit"
+                                    class="cancel-button"
+                                >
+
+                                    ❌ ยกเลิกรายการ
+
+                                </button>
+
+
+                            </form>
+
+
+                        {% else %}
+
+
+                            <span class="cannot-cancel">
+                                -
+                            </span>
+
+
+                        {% endif %}
+
+
+                    </td>
+
+
+                </tr>
+
+
+                {% else %}
+
+
+                <tr>
+
+                    <td
+                        colspan="8"
+                        class="empty"
+                    >
+
+                        ยังไม่มีประวัติการใช้งาน
+
+                    </td>
+
+                </tr>
+
+
+                {% endfor %}
+
+
+            </tbody>
+
+
+        </table>
+
+
+    </div>
+
+
+    <!-- ปุ่มกลับหน้าหลักด้านล่าง -->
+
+    <a
+        href="{{ url_for('home') }}"
+        class="back-button"
+    >
+
+        ⬅ กลับหน้าหลัก
+
+    </a>
+
+
+</div>
+
+
+</body>
+
+</html>

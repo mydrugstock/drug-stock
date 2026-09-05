@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+
+<html lang="th">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>📦 สต๊อกยา</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+        }
+
+        header {
+            background: #1976d2;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 900px;
+            margin: 30px auto;
+        }
+
+        /* ปุ่มกลับหน้าหลัก */
+
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 16px;
+            background: #757575;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .back:hover {
+            background: #555555;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .add-button {
+            background: #1976d2;
+            color: white;
+        }
+
+        .add-button:hover {
+            background: #125ca1;
+        }
+
+        .reset-button {
+            background: #d32f2f;
+            color: white;
+        }
+
+        .reset-button:hover {
+            background: #b71c1c;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: center;
+        }
+
+        th {
+            background: #eeeeee;
+        }
+
+        .message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .warning {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<header>
+
+    <h1>📦 สต๊อกยา</h1>
+
+    <p>จัดการรายการยาและจำนวนยา</p>
+
+</header>
+
+
+<div class="container">
+
+
+    <!-- กลับหน้าหลัก -->
+
+    <a href="{{ url_for('home') }}" class="back">
+        ← กลับหน้าหลัก
+    </a>
+
+
+    <!-- ข้อความ -->
+
+    {% with messages = get_flashed_messages() %}
+
+        {% if messages %}
+
+            {% for message in messages %}
+
+                <div class="message">
+                    {{ message }}
+                </div>
+
+            {% endfor %}
+
+        {% endif %}
+
+    {% endwith %}
+
+
+    <!-- เพิ่มยา -->
+
+    <div class="card">
+
+        <h2>➕ เพิ่มยาเข้าสต๊อก</h2>
+
+        <form
+            action="{{ url_for('add_drug') }}"
+            method="POST"
+        >
+
+            <label>
+                ชื่อยา
+            </label>
+
+            <input
+                type="text"
+                name="name"
+                placeholder="เช่น Paracetamol"
+                required
+            >
+
+
+            <label>
+                จำนวน
+            </label>
+
+            <input
+                type="number"
+                name="quantity"
+                min="0"
+                placeholder="เช่น 100"
+                required
+            >
+
+
+            <label>
+                หน่วย
+            </label>
+
+            <input
+                type="text"
+                name="unit"
+                placeholder="เช่น เม็ด"
+                required
+            >
+
+
+            <label>
+                จำนวนขั้นต่ำ
+            </label>
+
+            <input
+                type="number"
+                name="min_quantity"
+                min="0"
+                value="10"
+                required
+            >
+
+
+            <button
+                type="submit"
+                class="add-button"
+            >
+                ➕ เพิ่มยา
+            </button>
+
+        </form>
+
+    </div>
+
+
+    <!-- รายการยา -->
+
+    <div class="card">
+
+        <h2>📋 รายการยาในสต๊อก</h2>
+
+        <table>
+
+            <tr>
+
+                <th>ยา</th>
+
+                <th>จำนวน</th>
+
+                <th>หน่วย</th>
+
+                <th>ขั้นต่ำ</th>
+
+            </tr>
+
+
+            {% for drug in drugs %}
+
+            <tr>
+
+                <td>
+                    {{ drug["name"] }}
+                </td>
+
+                <td>
+                    {{ drug["quantity"] }}
+                </td>
+
+                <td>
+                    {{ drug["unit"] }}
+                </td>
+
+                <td>
+                    {{ drug["min_quantity"] }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+    </div>
+
+
+    <!-- รีเซ็ต -->
+
+    <div class="card">
+
+        <h2>⚠️ รีเซ็ตระบบทดลอง</h2>
+
+        <div class="warning">
+
+            การรีเซ็ตจะลบ
+            <b>รายการยา + การยืม + การขอ + ประวัติทั้งหมด</b>
+
+            และไม่สามารถกู้คืนได้
+
+        </div>
+
+
+        <form
+            action="{{ url_for('reset_all') }}"
+            method="POST"
+            onsubmit="return confirm(
+                '⚠️ ยืนยันการลบข้อมูลทั้งหมด?'
+            );"
+        >
+
+            <button
+                type="submit"
+                class="reset-button"
+            >
+                🗑️ รีเซ็ตทุกอย่าง
+            </button>
+
+        </form>
+
+    </div>
+
+
+</div>
+
+
+</body>
+
+</html>

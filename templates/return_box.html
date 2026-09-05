@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>คืนกล่องยา</title>
+
+    <style>
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+            padding: 30px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+
+        /* ปุ่มกลับหน้าหลัก */
+
+        .top-back {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 16px;
+            background: #757575;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .top-back:hover {
+            background: #555555;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow:
+                0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        h1 {
+            margin-top: 0;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .important {
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #eeeeee;
+        }
+
+        input {
+            padding: 10px;
+            width: 120px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            box-sizing: border-box;
+        }
+
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            background: #1976d2;
+        }
+
+        .success {
+            background: #2e7d32;
+        }
+
+        .back {
+            background: #757575;
+        }
+
+        .unit-text {
+            color: #666;
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+<div class="container">
+
+
+    <!-- ==================================================
+         กลับหน้าหลัก
+         ================================================== -->
+
+    <a
+        href="{{ url_for('home') }}"
+        class="top-back"
+    >
+
+        ← กลับหน้าหลัก
+
+    </a>
+
+
+    <div class="card">
+
+        <h1>
+            🔄 คืนกล่องที่ {{ box_unit['box_number'] }}
+        </h1>
+
+
+        <!-- ==================================================
+             ข้อมูลกล่อง
+             ================================================== -->
+
+        <div class="info">
+
+            <p>
+                <strong>ผู้ยืม:</strong>
+                {{ box_unit['borrower'] }}
+            </p>
+
+            <p>
+                <strong>วันที่ยืม:</strong>
+                {{ box_unit['borrow_date'] }}
+            </p>
+
+            <p class="important">
+                กรุณากรอก "จำนวนยาที่เหลือจริง"
+                ในกล่องที่นำมาคืน
+            </p>
+
+            <p>
+                ระบบจะคำนวณจำนวนยา
+                ที่ใช้ไปและจำนวนยา
+                ที่นำกลับเข้าสต๊อกให้อัตโนมัติ
+            </p>
+
+        </div>
+
+
+        <!-- ==================================================
+             แบบฟอร์มคืนกล่อง
+             ================================================== -->
+
+        <form
+            method="POST"
+            action="{{ url_for('return_box') }}"
+        >
+
+
+            <!-- ส่ง ID ของกล่องใบนี้ไปยัง app.py -->
+
+            <input
+                type="hidden"
+                name="box_unit_id"
+                value="{{ box_unit['id'] }}"
+            >
+
+
+            <!-- ==================================================
+                 ตารางยา
+                 ================================================== -->
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            ยา
+                        </th>
+
+                        <th>
+                            ตอนยืม
+                        </th>
+
+                        <th>
+                            เหลือเมื่อคืน
+                        </th>
+
+                        <th>
+                            หน่วย
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                {% for item in items %}
+
+                    <tr>
+
+                        <!-- ชื่อยา -->
+
+                        <td>
+                            {{ item['drug_name'] }}
+                        </td>
+
+
+                        <!-- จำนวนตอนยืม -->
+
+                        <td>
+                            {{ item['original_quantity'] }}
+                        </td>
+
+
+                        <!-- จำนวนยาที่เหลือ -->
+
+                        <td>
+
+                            <input
+                                type="number"
+                                name="remaining_{{ item['id'] }}"
+                                min="0"
+                                max="{{ item['original_quantity'] }}"
+                                step="0.01"
+                                value="{{ item['original_quantity'] }}"
+                                required
+                            >
+
+                        </td>
+
+
+                        <!-- หน่วย -->
+
+                        <td class="unit-text">
+
+                            {{ item['drug_unit'] }}
+
+                        </td>
+
+                    </tr>
+
+                {% endfor %}
+
+                </tbody>
+
+            </table>
+
+
+            <br>
+
+
+            <!-- ==================================================
+                 ปุ่มยืนยันคืน
+                 ================================================== -->
+
+            <button
+                type="submit"
+                class="success"
+                onclick="
+                    return confirm(
+                        'ตรวจสอบจำนวนยาที่เหลือแล้วใช่หรือไม่?'
+                    );
+                "
+            >
+
+                ✅ ยืนยันคืนกล่อง
+
+            </button>
+
+
+            <!-- ==================================================
+                 ปุ่มยกเลิกกลับไปหน้าจัดกล่อง
+                 ================================================== -->
+
+            <a href="{{ url_for('box') }}">
+
+                <button
+                    type="button"
+                    class="back"
+                >
+
+                    ← ยกเลิก
+
+                </button>
+
+            </a>
+
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>ยืม / ขอยา</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f7fa;
+            margin: 0;
+        }
+
+        header {
+            background: #1976d2;
+            color: white;
+            text-align: center;
+            padding: 25px;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 30px auto;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        button {
+            margin-top: 25px;
+            width: 100%;
+            background: #1976d2;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 17px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #125ca1;
+        }
+
+        /* ปุ่มกลับหน้าหลัก */
+        .back {
+            display: inline-block;
+            margin-bottom: 20px;
+            padding: 10px 16px;
+            background: #757575;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+        }
+
+        .back:hover {
+            background: #555555;
+        }
+
+        .message {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .stock {
+            margin-top: 5px;
+            color: #666;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    <h1>💊 ยืม / ขอยา</h1>
+    <p>ระบบยืมและขอยา</p>
+</header>
+
+<div class="container">
+
+    <!-- ปุ่มกลับหน้าหลัก -->
+    <a href="{{ url_for('home') }}" class="back">
+        ← กลับหน้าหลัก
+    </a>
+
+    {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            {% for message in messages %}
+                <div class="message">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="card">
+
+        <h2>📋 แบบฟอร์มยืม / ขอยา</h2>
+
+        <form action="{{ url_for('request_drug') }}" method="POST">
+
+            <label>ชื่อผู้ขอ</label>
+
+            <input
+                type="text"
+                name="requester"
+                placeholder="กรอกชื่อผู้ขอ"
+                required
+            >
+
+            <label>ประเภท</label>
+
+            <select name="transaction_type" required>
+
+                <option value="ยืม">
+                    ยืมยา
+                </option>
+
+                <option value="ขอ">
+                    ขอยา
+                </option>
+
+            </select>
+
+            <label>เลือกยา</label>
+
+            <select name="drug_id" required>
+
+                <option value="">
+                    -- เลือกยา --
+                </option>
+
+                {% for drug in drugs %}
+
+                <option value="{{ drug['id'] }}">
+
+                    {{ drug['name'] }}
+                    (เหลือ {{ drug['quantity'] }} {{ drug['unit'] }})
+
+                </option>
+
+                {% endfor %}
+
+            </select>
+
+            <label>จำนวน</label>
+
+            <input
+                type="number"
+                name="quantity"
+                min="1"
+                placeholder="กรอกจำนวน"
+                required
+            >
+
+            <button type="submit">
+                ✅ ยืนยันการยืม / ขอ
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+</body>
+</html>
