@@ -32,8 +32,6 @@
             margin: 30px auto;
         }
 
-        /* ปุ่มกลับหน้าหลัก */
-
         .back {
             display: inline-block;
             margin-bottom: 20px;
@@ -90,6 +88,18 @@
             background: #125ca1;
         }
 
+        .delete-button {
+            background: #d32f2f;
+            color: white;
+            margin-top: 0;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .delete-button:hover {
+            background: #b71c1c;
+        }
+
         .reset-button {
             background: #d32f2f;
             color: white;
@@ -131,6 +141,12 @@
             margin-bottom: 15px;
         }
 
+        .empty {
+            padding: 20px;
+            text-align: center;
+            color: #777;
+        }
+
     </style>
 
 </head>
@@ -151,14 +167,10 @@
 <div class="container">
 
 
-    <!-- กลับหน้าหลัก -->
-
     <a href="{{ url_for('home') }}" class="back">
         ← กลับหน้าหลัก
     </a>
 
-
-    <!-- ข้อความ -->
 
     {% with messages = get_flashed_messages() %}
 
@@ -208,6 +220,7 @@
                 type="number"
                 name="quantity"
                 min="0"
+                step="any"
                 placeholder="เช่น 100"
                 required
             >
@@ -220,7 +233,7 @@
             <input
                 type="text"
                 name="unit"
-                placeholder="เช่น เม็ด"
+                placeholder="เช่น เม็ด หรือ หลอด"
                 required
             >
 
@@ -233,6 +246,7 @@
                 type="number"
                 name="min_quantity"
                 min="0"
+                step="any"
                 value="10"
                 required
             >
@@ -256,6 +270,8 @@
 
         <h2>📋 รายการยาในสต๊อก</h2>
 
+        {% if drugs %}
+
         <table>
 
             <tr>
@@ -267,6 +283,8 @@
                 <th>หน่วย</th>
 
                 <th>ขั้นต่ำ</th>
+
+                <th>จัดการ</th>
 
             </tr>
 
@@ -280,7 +298,7 @@
                 </td>
 
                 <td>
-                    {{ drug["quantity"] }}
+                    {{ drug["quantity"]|float|round(2) }}
                 </td>
 
                 <td>
@@ -288,7 +306,28 @@
                 </td>
 
                 <td>
-                    {{ drug["min_quantity"] }}
+                    {{ drug["min_quantity"]|float|round(2) }}
+                </td>
+
+                <td>
+
+                    <form
+                        action="{{ url_for('delete_drug', drug_id=drug['id']) }}"
+                        method="POST"
+                        onsubmit="return confirm(
+                            '⚠️ ยืนยันการลบรายการ {{ drug['name'] }} จำนวน {{ drug['quantity'] }} {{ drug['unit'] }} ?'
+                        );"
+                    >
+
+                        <button
+                            type="submit"
+                            class="delete-button"
+                        >
+                            🗑️ ลบ
+                        </button>
+
+                    </form>
+
                 </td>
 
             </tr>
@@ -296,6 +335,14 @@
             {% endfor %}
 
         </table>
+
+        {% else %}
+
+        <div class="empty">
+            ยังไม่มีรายการยาในสต๊อก
+        </div>
+
+        {% endif %}
 
     </div>
 
@@ -320,7 +367,7 @@
             action="{{ url_for('reset_all') }}"
             method="POST"
             onsubmit="return confirm(
-                '⚠️ ยืนยันการลบข้อมูลทั้งหมด?'
+                '⚠️ ยืนยันการลบข้อมูลทั้งหมด? ข้อมูลจะไม่สามารถกู้คืนได้'
             );"
         >
 

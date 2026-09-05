@@ -55,21 +55,149 @@ class DBConnection:
         return cursor
 
     def commit(self):
-
         self.conn.commit()
 
     def rollback(self):
-
         self.conn.rollback()
 
     def close(self):
-
         self.conn.close()
 
 
 def get_db():
-
     return DBConnection()
+
+
+# ==================================================
+# สร้างตาราง loan_units
+#
+# ระบบใหม่:
+# ยืมทุกชนิด → แยกเป็นรายชิ้น
+# ==================================================
+
+_db_extension_initialized = False
+
+
+def init_loan_units():
+
+    global _db_extension_initialized
+
+    if _db_extension_initialized:
+        return
+
+    conn = None
+
+    try:
+
+        conn = get_db()
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS loan_units
+            (
+                id SERIAL PRIMARY KEY,
+
+                loan_id INTEGER NOT NULL
+                    REFERENCES external_loans(id)
+                    ON DELETE CASCADE,
+
+                unit_number INTEGER NOT NULL,
+
+                remaining_percent NUMERIC(5,2),
+
+                used_quantity NUMERIC,
+
+                returned_quantity NUMERIC,
+
+                status VARCHAR(30)
+                    DEFAULT 'ยังไม่คืน',
+
+                return_date TIMESTAMP,
+
+                UNIQUE(loan_id, unit_number)
+            )
+        """)
+
+        conn.commit()
+
+        # ==================================================
+        # รองรับรายการยืมเก่าที่ยังไม่คืน
+        #
+        # ถ้าเป็นรายการที่ยังไม่มี loan_units
+        # ระบบจะสร้างรายชิ้นให้อัตโนมัติ
+        # ==================================================
+
+        old_loans = conn.execute("""
+            SELECT
+                external_loans.id,
+                external_loans.quantity
+            FROM external_loans
+            WHERE external_loans.status = 'ยังไม่คืน'
+              AND external_loans.quantity > 0
+              AND external_loans.quantity = FLOOR(
+                    external_loans.quantity
+                  )
+            ORDER BY external_loans.id
+        """).fetchall()
+
+        for loan in old_loans:
+
+            unit_count = int(
+                loan["quantity"]
+            )
+
+            for unit_number in range(
+                1,
+                unit_count + 1
+            ):
+
+                conn.execute("""
+                    INSERT INTO loan_units
+                    (
+                        loan_id,
+                        unit_number,
+                        remaining_percent,
+                        used_quantity,
+                        returned_quantity,
+                        status,
+                        return_date
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT (loan_id, unit_number)
+                    DO NOTHING
+                """, (
+                    loan["id"],
+                    unit_number,
+                    None,
+                    None,
+                    None,
+                    "ยังไม่คืน",
+                    None
+                ))
+
+        conn.commit()
+
+        _db_extension_initialized = True
+
+    except Exception as e:
+
+        if conn:
+            conn.rollback()
+
+        print(
+            "ไม่สามารถสร้างตาราง loan_units:",
+            e
+        )
+
+    finally:
+
+        if conn:
+            conn.close()
+
+
+@app.before_request
+def initialize_database_extensions():
+
+    init_loan_units()
 
 
 # ==================================================
@@ -81,6 +209,18 @@ def now():
     return datetime.now().strftime(
         "%Y-%m-%d %H:%M:%S"
     )
+
+
+# ==================================================
+# ระบบใหม่:
+# ยืมทุกชนิดแยกเป็นรายชิ้น
+#
+# ไม่ต้องตรวจหน่วยแล้ว
+# ==================================================
+
+def is_individual_unit_drug(unit):
+
+    return True
 
 
 # ==================================================
@@ -214,30 +354,221 @@ def add_drug():
 
     conn = get_db()
 
-    conn.execute("""
-        INSERT INTO drugs
-        (
+    try:
+
+        # ==================================================
+        # ตรวจว่ามียาชื่อเดียวกัน + หน่วยเดียวกันอยู่แล้วหรือไม่
+        # ==================================================
+
+        existing = conn.execute("""
+            SELECT *
+            FROM drugs
+            WHERE LOWER(TRIM(name)) = LOWER(TRIM(?))
+              AND LOWER(TRIM(unit)) = LOWER(TRIM(?))
+            LIMIT 1
+        """, (
             name,
-            quantity,
-            unit,
-            min_quantity
+            unit
+        )).fetchone()
+
+        # ==================================================
+        # ถ้ามีอยู่แล้ว → รวมจำนวน
+        # ==================================================
+
+        if existing is not None:
+
+            new_quantity = (
+                existing["quantity"]
+                + quantity
+            )
+
+            conn.execute("""
+                UPDATE drugs
+                SET
+                    quantity = ?,
+                    min_quantity = ?
+                WHERE id = ?
+            """, (
+                new_quantity,
+                min_quantity,
+                existing["id"]
+            ))
+
+            conn.commit()
+
+            flash(
+                f"✅ พบ {existing['name']} "
+                f"หน่วย {existing['unit']} อยู่แล้ว "
+                f"จึงรวมจำนวนเพิ่ม {quantity:g} "
+                f"{unit} | "
+                f"คงเหลือ {new_quantity:g} {unit}"
+            )
+
+        # ==================================================
+        # ถ้ายังไม่มี → สร้างรายการใหม่
+        # ==================================================
+
+        else:
+
+            conn.execute("""
+                INSERT INTO drugs
+                (
+                    name,
+                    quantity,
+                    unit,
+                    min_quantity
+                )
+                VALUES (?, ?, ?, ?)
+            """, (
+                name,
+                quantity,
+                unit,
+                min_quantity
+            ))
+
+            conn.commit()
+
+            flash(
+                f"✅ เพิ่ม {name} "
+                f"จำนวน {quantity:g} {unit} "
+                f"เข้าสต๊อกแล้ว"
+            )
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "ADD DRUG ERROR:",
+            e
         )
-        VALUES (?, ?, ?, ?)
-    """, (
-        name,
-        quantity,
-        unit,
-        min_quantity
-    ))
 
-    conn.commit()
-    conn.close()
+        flash(
+            "❌ ไม่สามารถเพิ่มยาได้"
+        )
 
-    flash(
-        f"✅ เพิ่ม {name} "
-        f"จำนวน {quantity:g} {unit} "
-        f"เข้าสต๊อกแล้ว"
+    finally:
+
+        conn.close()
+
+    return redirect(
+        url_for("stock")
     )
+
+
+# ==================================================
+# ลบยา 1 รายการ
+# ==================================================
+
+@app.route("/delete-drug/<int:drug_id>", methods=["POST"])
+def delete_drug(drug_id):
+
+    conn = get_db()
+
+    try:
+
+        drug = conn.execute("""
+            SELECT *
+            FROM drugs
+            WHERE id = ?
+        """, (
+            drug_id,
+        )).fetchone()
+
+        if drug is None:
+
+            conn.close()
+
+            flash(
+                "❌ ไม่พบรายการยาที่ต้องการลบ"
+            )
+
+            return redirect(
+                url_for("stock")
+            )
+
+        transaction_count = conn.execute("""
+            SELECT COUNT(*) AS total
+            FROM transactions
+            WHERE drug_id = ?
+        """, (
+            drug_id,
+        )).fetchone()["total"]
+
+        loan_count = conn.execute("""
+            SELECT COUNT(*) AS total
+            FROM external_loans
+            WHERE drug_id = ?
+        """, (
+            drug_id,
+        )).fetchone()["total"]
+
+        box_item_count = conn.execute("""
+            SELECT COUNT(*) AS total
+            FROM box_items
+            WHERE drug_id = ?
+        """, (
+            drug_id,
+        )).fetchone()["total"]
+
+        box_unit_item_count = conn.execute("""
+            SELECT COUNT(*) AS total
+            FROM box_unit_items
+            WHERE drug_id = ?
+        """, (
+            drug_id,
+        )).fetchone()["total"]
+
+        if (
+            transaction_count > 0
+            or loan_count > 0
+            or box_item_count > 0
+            or box_unit_item_count > 0
+        ):
+
+            conn.close()
+
+            flash(
+                f"❌ ไม่สามารถลบ {drug['name']} ได้ "
+                f"เพราะรายการนี้มีประวัติการใช้งานแล้ว "
+                f"เพื่อป้องกันประวัติย้อนหลังเสียหาย"
+            )
+
+            return redirect(
+                url_for("stock")
+            )
+
+        conn.execute("""
+            DELETE FROM drugs
+            WHERE id = ?
+        """, (
+            drug_id,
+        ))
+
+        conn.commit()
+
+        flash(
+            f"🗑️ ลบ {drug['name']} "
+            f"จำนวน {drug['quantity']:g} "
+            f"{drug['unit']} ออกจากสต๊อกแล้ว"
+        )
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "DELETE DRUG ERROR:",
+            e
+        )
+
+        flash(
+            "❌ ไม่สามารถลบรายการยาได้"
+        )
+
+    finally:
+
+        conn.close()
 
     return redirect(
         url_for("stock")
@@ -289,31 +620,7 @@ def request_drug():
             url_for("borrow")
         )
 
-    conn = get_db()
-
-    drug = conn.execute("""
-        SELECT *
-        FROM drugs
-        WHERE id = ?
-    """, (
-        drug_id,
-    )).fetchone()
-
-    if drug is None:
-
-        conn.close()
-
-        flash(
-            "❌ ไม่พบยาที่เลือก"
-        )
-
-        return redirect(
-            url_for("borrow")
-        )
-
     if quantity <= 0:
-
-        conn.close()
 
         flash(
             "❌ จำนวนต้องมากกว่า 0"
@@ -323,169 +630,293 @@ def request_drug():
             url_for("borrow")
         )
 
-    if quantity > drug["quantity"]:
+    conn = get_db()
 
-        conn.close()
+    try:
 
-        flash(
-            f"❌ ยา {drug['name']} "
-            f"มีในคลังเพียง "
-            f"{drug['quantity']:g} "
-            f"{drug['unit']}"
-        )
-
-        return redirect(
-            url_for("borrow")
-        )
-
-    transaction_date = now()
-
-    # ==================================================
-    # ยืม
-    # ==================================================
-
-    if transaction_type == "ยืม":
-
-        new_quantity = (
-            drug["quantity"] - quantity
-        )
-
-        conn.execute("""
-            UPDATE drugs
-            SET quantity = ?
+        drug = conn.execute("""
+            SELECT *
+            FROM drugs
             WHERE id = ?
+            FOR UPDATE
         """, (
-            new_quantity,
-            drug_id
-        ))
-
-        cursor = conn.execute("""
-            INSERT INTO external_loans
-            (
-                borrower,
-                drug_id,
-                quantity,
-                remaining_percent,
-                used_quantity,
-                status,
-                borrow_date,
-                return_date
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            RETURNING id
-        """, (
-            requester,
             drug_id,
-            quantity,
-            None,
-            None,
-            "ยังไม่คืน",
-            transaction_date,
-            None
-        ))
+        )).fetchone()
 
-        loan_id = cursor.fetchone()["id"]
+        if drug is None:
 
-        conn.execute("""
-            INSERT INTO transactions
-            (
+            conn.rollback()
+            conn.close()
+
+            flash(
+                "❌ ไม่พบยาที่เลือก"
+            )
+
+            return redirect(
+                url_for("borrow")
+            )
+
+        if quantity > drug["quantity"]:
+
+            conn.rollback()
+            conn.close()
+
+            flash(
+                f"❌ ยา {drug['name']} "
+                f"มีในคลังเพียง "
+                f"{drug['quantity']:g} "
+                f"{drug['unit']}"
+            )
+
+            return redirect(
+                url_for("borrow")
+            )
+
+        transaction_date = now()
+
+        # ==================================================
+        # ยืม
+        # ==================================================
+
+        if transaction_type == "ยืม":
+
+            # ==================================================
+            # ระบบใหม่:
+            # ยาทุกชนิดต้องแยกเป็นรายชิ้น
+            #
+            # ดังนั้นจำนวนต้องเป็นจำนวนเต็ม
+            # ==================================================
+
+            if not quantity.is_integer():
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ การยืมยาแบบรายชิ้น "
+                    f"ต้องเป็นจำนวนเต็ม "
+                    f"เช่น 1, 2, 5 {drug['unit']}"
+                )
+
+                return redirect(
+                    url_for("borrow")
+                )
+
+            number_of_units = int(
+                quantity
+            )
+
+            new_quantity = (
+                drug["quantity"] - quantity
+            )
+
+            conn.execute("""
+                UPDATE drugs
+                SET quantity = ?
+                WHERE id = ?
+            """, (
+                new_quantity,
+                drug_id
+            ))
+
+            # ==================================================
+            # สร้างรายการยืม
+            # ==================================================
+
+            cursor = conn.execute("""
+                INSERT INTO external_loans
+                (
+                    borrower,
+                    drug_id,
+                    quantity,
+                    remaining_percent,
+                    used_quantity,
+                    status,
+                    borrow_date,
+                    return_date
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                RETURNING id
+            """, (
                 requester,
                 drug_id,
                 quantity,
-                transaction_type,
+                None,
+                None,
+                "ยังไม่คืน",
                 transaction_date,
-                cancelled,
-                loan_id,
-                box_loan_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            requester,
-            drug_id,
-            quantity,
-            "ยืม",
-            transaction_date,
-            0,
-            loan_id,
-            None
-        ))
+                None
+            ))
 
-        conn.commit()
-        conn.close()
+            loan_id = cursor.fetchone()["id"]
 
-        flash(
-            f"✅ ยืม {drug['name']} "
-            f"{quantity:g} {drug['unit']} สำเร็จ"
-        )
+            # ==================================================
+            # สร้างยาแยกทีละชิ้น
+            #
+            # เช่น ยืม 5
+            #
+            # 1
+            # 2
+            # 3
+            # 4
+            # 5
+            # ==================================================
 
-        return redirect(
-            url_for("borrow")
-        )
+            for unit_number in range(
+                1,
+                number_of_units + 1
+            ):
 
-    # ==================================================
-    # ขอ
-    # ==================================================
+                conn.execute("""
+                    INSERT INTO loan_units
+                    (
+                        loan_id,
+                        unit_number,
+                        remaining_percent,
+                        used_quantity,
+                        returned_quantity,
+                        status,
+                        return_date
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    loan_id,
+                    unit_number,
+                    None,
+                    None,
+                    None,
+                    "ยังไม่คืน",
+                    None
+                ))
 
-    if transaction_type == "ขอ":
+            # ==================================================
+            # ประวัติการยืม
+            # ==================================================
 
-        new_quantity = (
-            drug["quantity"] - quantity
-        )
-
-        conn.execute("""
-            UPDATE drugs
-            SET quantity = ?
-            WHERE id = ?
-        """, (
-            new_quantity,
-            drug_id
-        ))
-
-        conn.execute("""
-            INSERT INTO transactions
-            (
+            conn.execute("""
+                INSERT INTO transactions
+                (
+                    requester,
+                    drug_id,
+                    quantity,
+                    transaction_type,
+                    transaction_date,
+                    cancelled,
+                    loan_id,
+                    box_loan_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
                 requester,
                 drug_id,
                 quantity,
-                transaction_type,
+                "ยืม",
                 transaction_date,
-                cancelled,
+                0,
                 loan_id,
-                box_loan_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            requester,
-            drug_id,
-            quantity,
-            "ขอ",
-            transaction_date,
-            0,
-            None,
-            None
-        ))
+                None
+            ))
 
-        conn.commit()
+            conn.commit()
+            conn.close()
+
+            flash(
+                f"✅ ยืม {drug['name']} "
+                f"{quantity:g} {drug['unit']} สำเร็จ "
+                f"| ระบบแยกติดตามเป็นรายชิ้น "
+                f"{number_of_units} ชิ้นแล้ว"
+            )
+
+            return redirect(
+                url_for("borrow")
+            )
+
+        # ==================================================
+        # ขอ
+        #
+        # การขอไม่ต้องคืน
+        # จึงไม่สร้าง loan_units
+        # ==================================================
+
+        if transaction_type == "ขอ":
+
+            new_quantity = (
+                drug["quantity"] - quantity
+            )
+
+            conn.execute("""
+                UPDATE drugs
+                SET quantity = ?
+                WHERE id = ?
+            """, (
+                new_quantity,
+                drug_id
+            ))
+
+            conn.execute("""
+                INSERT INTO transactions
+                (
+                    requester,
+                    drug_id,
+                    quantity,
+                    transaction_type,
+                    transaction_date,
+                    cancelled,
+                    loan_id,
+                    box_loan_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                requester,
+                drug_id,
+                quantity,
+                "ขอ",
+                transaction_date,
+                0,
+                None,
+                None
+            ))
+
+            conn.commit()
+            conn.close()
+
+            flash(
+                f"✅ ขอ {drug['name']} "
+                f"{quantity:g} {drug['unit']} สำเร็จ"
+            )
+
+            return redirect(
+                url_for("borrow")
+            )
+
+        conn.rollback()
         conn.close()
 
         flash(
-            f"✅ ขอ {drug['name']} "
-            f"{quantity:g} {drug['unit']} สำเร็จ"
+            "❌ ไม่พบประเภทการทำรายการ"
         )
 
         return redirect(
             url_for("borrow")
         )
 
-    conn.close()
+    except Exception as e:
 
-    flash(
-        "❌ ไม่พบประเภทการทำรายการ"
-    )
+        conn.rollback()
+        conn.close()
 
-    return redirect(
-        url_for("borrow")
-    )
+        print(
+            "REQUEST DRUG ERROR:",
+            e
+        )
+
+        flash(
+            "❌ เกิดข้อผิดพลาดในการทำรายการ"
+        )
+
+        return redirect(
+            url_for("borrow")
+        )
 
 
 # ==================================================
@@ -497,19 +928,11 @@ def box():
 
     conn = get_db()
 
-    # ==================================================
-    # รายการยา
-    # ==================================================
-
     drugs = conn.execute("""
         SELECT *
         FROM drugs
         ORDER BY name
     """).fetchall()
-
-    # ==================================================
-    # สูตรกล่อง
-    # ==================================================
 
     box_items = conn.execute("""
         SELECT
@@ -523,10 +946,6 @@ def box():
             ON box_items.drug_id = drugs.id
         ORDER BY drugs.name
     """).fetchall()
-
-    # ==================================================
-    # ชุดกล่องที่ยังมีของรอคืน
-    # ==================================================
 
     box_loans = conn.execute("""
         SELECT
@@ -544,10 +963,6 @@ def box():
         WHERE status = 'รอคืน'
         ORDER BY id DESC
     """).fetchall()
-
-    # ==================================================
-    # กล่องแต่ละใบที่รอคืน
-    # ==================================================
 
     box_units = conn.execute("""
         SELECT
@@ -614,108 +1029,21 @@ def save_box_template():
 
     conn = get_db()
 
-    # ==================================================
-    # ห้ามเปลี่ยนสูตรขณะมีกล่องรอคืน
-    # ==================================================
+    try:
 
-    active = conn.execute("""
-        SELECT COUNT(*) AS total
-        FROM box_units
-        WHERE status = 'รอคืน'
-    """).fetchone()
+        active = conn.execute("""
+            SELECT COUNT(*) AS total
+            FROM box_units
+            WHERE status = 'รอคืน'
+        """).fetchone()
 
-    if active["total"] > 0:
+        if active["total"] > 0:
 
-        conn.close()
-
-        flash(
-            "❌ ยังมีกล่องที่รอคืนอยู่ "
-            "กรุณาคืนกล่องให้ครบก่อนเปลี่ยนสูตร"
-        )
-
-        return redirect(
-            url_for("box")
-        )
-
-    conn.execute("""
-        DELETE FROM box_items
-    """)
-
-    used_drugs = set()
-
-    for drug_id_text, quantity_text in zip(
-        drug_ids,
-        quantities
-    ):
-
-        try:
-
-            drug_id = int(
-                drug_id_text
-            )
-
-            quantity = float(
-                quantity_text
-            )
-
-        except ValueError:
-
-            conn.rollback()
             conn.close()
 
             flash(
-                "❌ ข้อมูลจำนวนยาไม่ถูกต้อง"
-            )
-
-            return redirect(
-                url_for("box")
-            )
-
-        if quantity <= 0:
-
-            conn.rollback()
-            conn.close()
-
-            flash(
-                "❌ จำนวนต่อกล่องต้องมากกว่า 0"
-            )
-
-            return redirect(
-                url_for("box")
-            )
-
-        if drug_id in used_drugs:
-
-            conn.rollback()
-            conn.close()
-
-            flash(
-                "❌ ไม่ควรเลือกยาชนิดเดียวกันซ้ำ"
-            )
-
-            return redirect(
-                url_for("box")
-            )
-
-        used_drugs.add(
-            drug_id
-        )
-
-        drug = conn.execute("""
-            SELECT id
-            FROM drugs
-            WHERE id = ?
-        """, (
-            drug_id,
-        )).fetchone()
-
-        if drug is None:
-
-            conn.rollback()
-            conn.close()
-
-            flash(
-                "❌ ไม่พบยาที่เลือก"
+                "❌ ยังมีกล่องที่รอคืนอยู่ "
+                "กรุณาคืนกล่องให้ครบก่อนเปลี่ยนสูตร"
             )
 
             return redirect(
@@ -723,19 +1051,120 @@ def save_box_template():
             )
 
         conn.execute("""
-            INSERT INTO box_items
-            (
-                drug_id,
-                quantity_per_box
-            )
-            VALUES (?, ?)
-        """, (
-            drug_id,
-            quantity
-        ))
+            DELETE FROM box_items
+        """)
 
-    conn.commit()
-    conn.close()
+        used_drugs = set()
+
+        for drug_id_text, quantity_text in zip(
+            drug_ids,
+            quantities
+        ):
+
+            try:
+
+                drug_id = int(
+                    drug_id_text
+                )
+
+                quantity = float(
+                    quantity_text
+                )
+
+            except ValueError:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    "❌ ข้อมูลจำนวนยาไม่ถูกต้อง"
+                )
+
+                return redirect(
+                    url_for("box")
+                )
+
+            if quantity <= 0:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    "❌ จำนวนต่อกล่องต้องมากกว่า 0"
+                )
+
+                return redirect(
+                    url_for("box")
+                )
+
+            if drug_id in used_drugs:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    "❌ ไม่ควรเลือกยาชนิดเดียวกันซ้ำ"
+                )
+
+                return redirect(
+                    url_for("box")
+                )
+
+            used_drugs.add(
+                drug_id
+            )
+
+            drug = conn.execute("""
+                SELECT id
+                FROM drugs
+                WHERE id = ?
+            """, (
+                drug_id,
+            )).fetchone()
+
+            if drug is None:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    "❌ ไม่พบยาที่เลือก"
+                )
+
+                return redirect(
+                    url_for("box")
+                )
+
+            conn.execute("""
+                INSERT INTO box_items
+                (
+                    drug_id,
+                    quantity_per_box
+                )
+                VALUES (?, ?)
+            """, (
+                drug_id,
+                quantity
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "SAVE BOX TEMPLATE ERROR:",
+            e
+        )
+
+        flash(
+            "❌ ไม่สามารถบันทึกสูตรกล่องได้"
+        )
+
+    finally:
+
+        conn.close()
 
     flash(
         "✅ บันทึกสูตร 1 กล่องเรียบร้อย"
@@ -813,179 +1242,177 @@ def create_box():
 
     conn = get_db()
 
-    box_items = conn.execute("""
-        SELECT
-            box_items.drug_id,
-            box_items.quantity_per_box,
-            drugs.name AS drug_name,
-            drugs.unit AS drug_unit,
-            drugs.quantity AS stock_quantity
-        FROM box_items
-        JOIN drugs
-            ON box_items.drug_id = drugs.id
-        ORDER BY drugs.name
-    """).fetchall()
+    try:
 
-    if len(box_items) == 0:
+        box_items = conn.execute("""
+            SELECT
+                box_items.drug_id,
+                box_items.quantity_per_box,
+                drugs.name AS drug_name,
+                drugs.unit AS drug_unit,
+                drugs.quantity AS stock_quantity
+            FROM box_items
+            JOIN drugs
+                ON box_items.drug_id = drugs.id
+            ORDER BY drugs.name
+        """).fetchall()
 
-        conn.close()
-
-        flash(
-            "❌ ยังไม่ได้กำหนดสูตรกล่อง"
-        )
-
-        return redirect(
-            url_for("box")
-        )
-
-    # ==================================================
-    # ตรวจสอบสต๊อก
-    # ==================================================
-
-    for item in box_items:
-
-        if (
-            item["quantity_per_box"]
-            > item["stock_quantity"]
-        ):
+        if len(box_items) == 0:
 
             conn.close()
 
             flash(
-                f"❌ จัดกล่องไม่ได้! "
-                f"{item['drug_name']} "
-                f"มี {item['stock_quantity']:g} "
-                f"{item['drug_unit']} "
-                f"แต่กล่องต้องใช้ "
-                f"{item['quantity_per_box']:g}"
+                "❌ ยังไม่ได้กำหนดสูตรกล่อง"
             )
 
             return redirect(
                 url_for("box")
             )
 
-    transaction_date = now()
+        for item in box_items:
 
-    # ==================================================
-    # สร้างชุดการยืม
-    # ==================================================
+            if (
+                item["quantity_per_box"]
+                > item["stock_quantity"]
+            ):
 
-    cursor = conn.execute("""
-        INSERT INTO box_loans
-        (
-            borrower,
-            total_boxes,
-            returned_boxes,
-            status,
-            borrow_date,
-            return_date
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        RETURNING id
-    """, (
-        borrower,
-        1,
-        0,
-        "รอคืน",
-        transaction_date,
-        None
-    ))
+                conn.close()
 
-    box_loan_id = cursor.fetchone()["id"]
+                flash(
+                    f"❌ จัดกล่องไม่ได้! "
+                    f"{item['drug_name']} "
+                    f"มี {item['stock_quantity']:g} "
+                    f"{item['drug_unit']} "
+                    f"แต่กล่องต้องใช้ "
+                    f"{item['quantity_per_box']:g}"
+                )
 
-    # ==================================================
-    # สร้างกล่องที่ 1
-    # ==================================================
+                return redirect(
+                    url_for("box")
+                )
 
-    cursor = conn.execute("""
-        INSERT INTO box_units
-        (
-            box_loan_id,
-            box_number,
-            status,
-            borrow_date,
-            return_date
-        )
-        VALUES (?, ?, ?, ?, ?)
-        RETURNING id
-    """, (
-        box_loan_id,
-        1,
-        "รอคืน",
-        transaction_date,
-        None
-    ))
+        transaction_date = now()
 
-    box_unit_id = cursor.fetchone()["id"]
-
-    # ==================================================
-    # หักยาออกจากสต๊อก
-    # ==================================================
-
-    for item in box_items:
-
-        conn.execute("""
-            UPDATE drugs
-            SET quantity = quantity - ?
-            WHERE id = ?
-        """, (
-            item["quantity_per_box"],
-            item["drug_id"]
-        ))
-
-        # ==================================================
-        # บันทึกยาในกล่อง
-        # ==================================================
-
-        conn.execute("""
-            INSERT INTO box_unit_items
+        cursor = conn.execute("""
+            INSERT INTO box_loans
             (
-                box_unit_id,
-                drug_id,
-                original_quantity,
-                remaining_quantity,
-                used_quantity,
-                returned_quantity
+                borrower,
+                total_boxes,
+                returned_boxes,
+                status,
+                borrow_date,
+                return_date
             )
             VALUES (?, ?, ?, ?, ?, ?)
+            RETURNING id
         """, (
-            box_unit_id,
-            item["drug_id"],
-            item["quantity_per_box"],
-            None,
-            None,
+            borrower,
+            1,
+            0,
+            "รอคืน",
+            transaction_date,
             None
         ))
 
-        # ==================================================
-        # ประวัติ
-        # ==================================================
+        box_loan_id = cursor.fetchone()["id"]
 
-        conn.execute("""
-            INSERT INTO transactions
+        cursor = conn.execute("""
+            INSERT INTO box_units
             (
-                requester,
-                drug_id,
-                quantity,
-                transaction_type,
-                transaction_date,
-                cancelled,
-                loan_id,
-                box_loan_id
+                box_loan_id,
+                box_number,
+                status,
+                borrow_date,
+                return_date
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?)
+            RETURNING id
         """, (
-            borrower,
-            item["drug_id"],
-            item["quantity_per_box"],
-            "ยืมกล่อง",
+            box_loan_id,
+            1,
+            "รอคืน",
             transaction_date,
-            0,
-            None,
-            box_loan_id
+            None
         ))
 
-    conn.commit()
+        box_unit_id = cursor.fetchone()["id"]
+
+        for item in box_items:
+
+            conn.execute("""
+                UPDATE drugs
+                SET quantity = quantity - ?
+                WHERE id = ?
+            """, (
+                item["quantity_per_box"],
+                item["drug_id"]
+            ))
+
+            conn.execute("""
+                INSERT INTO box_unit_items
+                (
+                    box_unit_id,
+                    drug_id,
+                    original_quantity,
+                    remaining_quantity,
+                    used_quantity,
+                    returned_quantity
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (
+                box_unit_id,
+                item["drug_id"],
+                item["quantity_per_box"],
+                None,
+                None,
+                None
+            ))
+
+            conn.execute("""
+                INSERT INTO transactions
+                (
+                    requester,
+                    drug_id,
+                    quantity,
+                    transaction_type,
+                    transaction_date,
+                    cancelled,
+                    loan_id,
+                    box_loan_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                borrower,
+                item["drug_id"],
+                item["quantity_per_box"],
+                "ยืมกล่อง",
+                transaction_date,
+                0,
+                None,
+                box_loan_id
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "CREATE BOX ERROR:",
+            e
+        )
+
+        flash(
+            "❌ ไม่สามารถสร้างกล่องได้"
+        )
+
+        conn.close()
+
+        return redirect(
+            url_for("box")
+        )
+
     conn.close()
 
     flash(
@@ -1037,218 +1464,212 @@ def add_box():
 
     conn = get_db()
 
-    box_loan = conn.execute("""
-        SELECT *
-        FROM box_loans
-        WHERE id = ?
-        AND status = 'รอคืน'
-    """, (
-        box_loan_id,
-    )).fetchone()
+    try:
 
-    if box_loan is None:
+        box_loan = conn.execute("""
+            SELECT *
+            FROM box_loans
+            WHERE id = ?
+            AND status = 'รอคืน'
+        """, (
+            box_loan_id,
+        )).fetchone()
 
-        conn.close()
-
-        flash(
-            "❌ ไม่พบชุดกล่องนี้"
-        )
-
-        return redirect(
-            url_for("box")
-        )
-
-    box_items = conn.execute("""
-        SELECT
-            box_items.drug_id,
-            box_items.quantity_per_box,
-            drugs.name AS drug_name,
-            drugs.unit AS drug_unit,
-            drugs.quantity AS stock_quantity
-        FROM box_items
-        JOIN drugs
-            ON box_items.drug_id = drugs.id
-        ORDER BY drugs.name
-    """).fetchall()
-
-    if len(box_items) == 0:
-
-        conn.close()
-
-        flash(
-            "❌ ยังไม่ได้กำหนดสูตรกล่อง"
-        )
-
-        return redirect(
-            url_for("box")
-        )
-
-    # ==================================================
-    # ตรวจสอบสต๊อกทั้งหมดก่อน
-    # ==================================================
-
-    for item in box_items:
-
-        required = (
-            item["quantity_per_box"]
-            * add_boxes
-        )
-
-        if required > item["stock_quantity"]:
+        if box_loan is None:
 
             conn.close()
 
             flash(
-                f"❌ เพิ่มกล่องไม่ได้! "
-                f"{item['drug_name']} "
-                f"ต้องใช้เพิ่ม {required:g} "
-                f"{item['drug_unit']} "
-                f"แต่มี {item['stock_quantity']:g}"
+                "❌ ไม่พบชุดกล่องนี้"
             )
 
             return redirect(
                 url_for("box")
             )
 
-    transaction_date = now()
+        box_items = conn.execute("""
+            SELECT
+                box_items.drug_id,
+                box_items.quantity_per_box,
+                drugs.name AS drug_name,
+                drugs.unit AS drug_unit,
+                drugs.quantity AS stock_quantity
+            FROM box_items
+            JOIN drugs
+                ON box_items.drug_id = drugs.id
+            ORDER BY drugs.name
+        """).fetchall()
 
-    # ==================================================
-    # หาเลขกล่องล่าสุด
-    # ==================================================
+        if len(box_items) == 0:
 
-    latest = conn.execute("""
-        SELECT MAX(box_number) AS max_number
-        FROM box_units
-        WHERE box_loan_id = ?
-    """, (
-        box_loan_id,
-    )).fetchone()
+            conn.close()
 
-    next_box_number = (
-        latest["max_number"] or 0
-    ) + 1
-
-    # ==================================================
-    # สร้างกล่องทีละใบ
-    # ==================================================
-
-    for i in range(add_boxes):
-
-        box_number = (
-            next_box_number + i
-        )
-
-        cursor = conn.execute("""
-            INSERT INTO box_units
-            (
-                box_loan_id,
-                box_number,
-                status,
-                borrow_date,
-                return_date
+            flash(
+                "❌ ยังไม่ได้กำหนดสูตรกล่อง"
             )
-            VALUES (?, ?, ?, ?, ?)
-            RETURNING id
-        """, (
-            box_loan_id,
-            box_number,
-            "รอคืน",
-            transaction_date,
-            None
-        ))
 
-        box_unit_id = cursor.fetchone()["id"]
-
-        # ==================================================
-        # หักยา
-        # ==================================================
+            return redirect(
+                url_for("box")
+            )
 
         for item in box_items:
 
-            required = item[
-                "quantity_per_box"
-            ]
+            required = (
+                item["quantity_per_box"]
+                * add_boxes
+            )
 
-            conn.execute("""
-                UPDATE drugs
-                SET quantity = quantity - ?
-                WHERE id = ?
-            """, (
-                required,
-                item["drug_id"]
-            ))
+            if required > item["stock_quantity"]:
 
-            # ==================================================
-            # บันทึกยาในกล่อง
-            # ==================================================
+                conn.close()
 
-            conn.execute("""
-                INSERT INTO box_unit_items
-                (
-                    box_unit_id,
-                    drug_id,
-                    original_quantity,
-                    remaining_quantity,
-                    used_quantity,
-                    returned_quantity
+                flash(
+                    f"❌ เพิ่มกล่องไม่ได้! "
+                    f"{item['drug_name']} "
+                    f"ต้องใช้เพิ่ม {required:g} "
+                    f"{item['drug_unit']} "
+                    f"แต่มี {item['stock_quantity']:g}"
                 )
-                VALUES (?, ?, ?, ?, ?, ?)
+
+                return redirect(
+                    url_for("box")
+                )
+
+        transaction_date = now()
+
+        latest = conn.execute("""
+            SELECT MAX(box_number) AS max_number
+            FROM box_units
+            WHERE box_loan_id = ?
+        """, (
+            box_loan_id,
+        )).fetchone()
+
+        next_box_number = (
+            latest["max_number"] or 0
+        ) + 1
+
+        for i in range(add_boxes):
+
+            box_number = (
+                next_box_number + i
+            )
+
+            cursor = conn.execute("""
+                INSERT INTO box_units
+                (
+                    box_loan_id,
+                    box_number,
+                    status,
+                    borrow_date,
+                    return_date
+                )
+                VALUES (?, ?, ?, ?, ?)
+                RETURNING id
             """, (
-                box_unit_id,
-                item["drug_id"],
-                required,
-                None,
-                None,
+                box_loan_id,
+                box_number,
+                "รอคืน",
+                transaction_date,
                 None
             ))
 
-            # ==================================================
-            # ประวัติ
-            # ==================================================
+            box_unit_id = cursor.fetchone()["id"]
 
-            conn.execute("""
-                INSERT INTO transactions
-                (
-                    requester,
-                    drug_id,
-                    quantity,
-                    transaction_type,
+            for item in box_items:
+
+                required = item[
+                    "quantity_per_box"
+                ]
+
+                conn.execute("""
+                    UPDATE drugs
+                    SET quantity = quantity - ?
+                    WHERE id = ?
+                """, (
+                    required,
+                    item["drug_id"]
+                ))
+
+                conn.execute("""
+                    INSERT INTO box_unit_items
+                    (
+                        box_unit_id,
+                        drug_id,
+                        original_quantity,
+                        remaining_quantity,
+                        used_quantity,
+                        returned_quantity
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (
+                    box_unit_id,
+                    item["drug_id"],
+                    required,
+                    None,
+                    None,
+                    None
+                ))
+
+                conn.execute("""
+                    INSERT INTO transactions
+                    (
+                        requester,
+                        drug_id,
+                        quantity,
+                        transaction_type,
+                        transaction_date,
+                        cancelled,
+                        loan_id,
+                        box_loan_id
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    box_loan["borrower"],
+                    item["drug_id"],
+                    required,
+                    "เพิ่มกล่อง",
                     transaction_date,
-                    cancelled,
-                    loan_id,
+                    0,
+                    None,
                     box_loan_id
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                box_loan["borrower"],
-                item["drug_id"],
-                required,
-                "เพิ่มกล่อง",
-                transaction_date,
-                0,
-                None,
-                box_loan_id
-            ))
+                ))
 
-    # ==================================================
-    # เพิ่มจำนวนกล่อง
-    # ==================================================
+        new_total = (
+            box_loan["total_boxes"]
+            + add_boxes
+        )
 
-    new_total = (
-        box_loan["total_boxes"]
-        + add_boxes
-    )
+        conn.execute("""
+            UPDATE box_loans
+            SET total_boxes = ?
+            WHERE id = ?
+        """, (
+            new_total,
+            box_loan_id
+        ))
 
-    conn.execute("""
-        UPDATE box_loans
-        SET total_boxes = ?
-        WHERE id = ?
-    """, (
-        new_total,
-        box_loan_id
-    ))
+        conn.commit()
 
-    conn.commit()
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "ADD BOX ERROR:",
+            e
+        )
+
+        flash(
+            "❌ ไม่สามารถเพิ่มกล่องได้"
+        )
+
+        conn.close()
+
+        return redirect(
+            url_for("box")
+        )
+
     conn.close()
 
     flash(
@@ -1269,10 +1690,6 @@ def add_box():
 def return_box_page(box_unit_id):
 
     conn = get_db()
-
-    # ==================================================
-    # ดึงข้อมูลกล่อง + ชื่อผู้ยืม
-    # ==================================================
 
     box_unit = conn.execute("""
         SELECT
@@ -1299,10 +1716,6 @@ def return_box_page(box_unit_id):
         return redirect(
             url_for("box")
         )
-
-    # ==================================================
-    # ดึงยาในกล่อง
-    # ==================================================
 
     items = conn.execute("""
         SELECT
@@ -1335,10 +1748,6 @@ def return_box_page(box_unit_id):
 
 @app.route("/return-box", methods=["POST"])
 def return_box():
-
-    # ==================================================
-    # ตรวจสอบ box_unit_id
-    # ==================================================
 
     box_unit_id_text = request.form.get(
         "box_unit_id"
@@ -1373,349 +1782,310 @@ def return_box():
 
     conn = get_db()
 
-    # ==================================================
-    # ดึงข้อมูลกล่อง + ผู้ยืม
-    # ==================================================
+    try:
 
-    box_unit = conn.execute("""
-        SELECT
-            box_units.*,
-            box_loans.borrower,
-            box_loans.total_boxes,
-            box_loans.returned_boxes
-        FROM box_units
-        JOIN box_loans
-            ON box_units.box_loan_id = box_loans.id
-        WHERE box_units.id = ?
-        AND box_units.status = 'รอคืน'
-    """, (
-        box_unit_id,
-    )).fetchone()
-
-    if box_unit is None:
-
-        conn.close()
-
-        flash(
-            "❌ ไม่พบกล่อง หรือกล่องนี้คืนแล้ว"
-        )
-
-        return redirect(
-            url_for("box")
-        )
-
-    # ==================================================
-    # ดึงยาในกล่อง
-    # ==================================================
-
-    items = conn.execute("""
-        SELECT
-            box_unit_items.*,
-            drugs.name AS drug_name,
-            drugs.unit AS drug_unit,
-            drugs.quantity AS stock_quantity
-        FROM box_unit_items
-        JOIN drugs
-            ON box_unit_items.drug_id = drugs.id
-        WHERE box_unit_items.box_unit_id = ?
-        ORDER BY drugs.name
-    """, (
-        box_unit_id,
-    )).fetchall()
-
-    if len(items) == 0:
-
-        conn.close()
-
-        flash(
-            "❌ ไม่พบยาในกล่อง"
-        )
-
-        return redirect(
-            url_for("box")
-        )
-
-    # ==================================================
-    # อ่านจำนวนยาที่เหลือจริง
-    # ==================================================
-
-    return_data = []
-
-    for item in items:
-
-        field_name = (
-            f"remaining_{item['id']}"
-        )
-
-        value = request.form.get(
-            field_name
-        )
-
-        if value is None or value.strip() == "":
-
-            conn.close()
-
-            flash(
-                f"❌ กรุณากรอกจำนวนยา "
-                f"{item['drug_name']}"
-            )
-
-            return redirect(
-                url_for(
-                    "return_box_page",
-                    box_unit_id=box_unit_id
-                )
-            )
-
-        try:
-
-            remaining = float(value)
-
-        except ValueError:
-
-            conn.close()
-
-            flash(
-                f"❌ จำนวนยา "
-                f"{item['drug_name']} "
-                f"ไม่ถูกต้อง"
-            )
-
-            return redirect(
-                url_for(
-                    "return_box_page",
-                    box_unit_id=box_unit_id
-                )
-            )
-
-        # ==================================================
-        # ตรวจจำนวนติดลบ
-        # ==================================================
-
-        if remaining < 0:
-
-            conn.close()
-
-            flash(
-                f"❌ {item['drug_name']} "
-                f"จำนวนที่เหลือห้ามติดลบ"
-            )
-
-            return redirect(
-                url_for(
-                    "return_box_page",
-                    box_unit_id=box_unit_id
-                )
-            )
-
-        # ==================================================
-        # ตรวจว่ามากกว่าตอนยืมหรือไม่
-        # ==================================================
-
-        if remaining > item["original_quantity"]:
-
-            conn.close()
-
-            flash(
-                f"❌ {item['drug_name']} "
-                f"เหลือได้ไม่เกิน "
-                f"{item['original_quantity']:g} "
-                f"{item['drug_unit']}"
-            )
-
-            return redirect(
-                url_for(
-                    "return_box_page",
-                    box_unit_id=box_unit_id
-                )
-            )
-
-        # ==================================================
-        # คำนวณจำนวนใช้ไป
-        # ==================================================
-
-        used = (
-            item["original_quantity"]
-            - remaining
-        )
-
-        # ==================================================
-        # จำนวนที่นำกลับเข้าสต๊อก
-        # ==================================================
-
-        returned = remaining
-
-        return_data.append({
-            "item": item,
-            "remaining": remaining,
-            "used": used,
-            "returned": returned
-        })
-
-    transaction_date = now()
-
-    # ==================================================
-    # คืนยาเข้าสต๊อก
-    # ==================================================
-
-    for data in return_data:
-
-        item = data["item"]
-
-        remaining = data["remaining"]
-
-        used = data["used"]
-
-        returned = data["returned"]
-
-        # ==================================================
-        # เพิ่มยาที่เหลือกลับเข้าสต๊อก
-        # ==================================================
-
-        conn.execute("""
-            UPDATE drugs
-            SET quantity = quantity + ?
-            WHERE id = ?
+        box_unit = conn.execute("""
+            SELECT
+                box_units.*,
+                box_loans.borrower,
+                box_loans.total_boxes,
+                box_loans.returned_boxes
+            FROM box_units
+            JOIN box_loans
+                ON box_units.box_loan_id = box_loans.id
+            WHERE box_units.id = ?
+            AND box_units.status = 'รอคืน'
         """, (
-            returned,
-            item["drug_id"]
-        ))
+            box_unit_id,
+        )).fetchone()
 
-        # ==================================================
-        # บันทึกผลของยาในกล่อง
-        # ==================================================
+        if box_unit is None:
 
-        conn.execute("""
-            UPDATE box_unit_items
-            SET
-                remaining_quantity = ?,
-                used_quantity = ?,
-                returned_quantity = ?
-            WHERE id = ?
+            conn.close()
+
+            flash(
+                "❌ ไม่พบกล่อง หรือกล่องนี้คืนแล้ว"
+            )
+
+            return redirect(
+                url_for("box")
+            )
+
+        items = conn.execute("""
+            SELECT
+                box_unit_items.*,
+                drugs.name AS drug_name,
+                drugs.unit AS drug_unit,
+                drugs.quantity AS stock_quantity
+            FROM box_unit_items
+            JOIN drugs
+                ON box_unit_items.drug_id = drugs.id
+            WHERE box_unit_items.box_unit_id = ?
+            ORDER BY drugs.name
         """, (
-            remaining,
-            used,
-            returned,
-            item["id"]
-        ))
+            box_unit_id,
+        )).fetchall()
 
-        # ==================================================
-        # บันทึกประวัติ
-        # ==================================================
+        if len(items) == 0:
 
-        conn.execute("""
-            INSERT INTO transactions
-            (
-                requester,
-                drug_id,
-                quantity,
-                transaction_type,
+            conn.close()
+
+            flash(
+                "❌ ไม่พบยาในกล่อง"
+            )
+
+            return redirect(
+                url_for("box")
+            )
+
+        return_data = []
+
+        for item in items:
+
+            field_name = (
+                f"remaining_{item['id']}"
+            )
+
+            value = request.form.get(
+                field_name
+            )
+
+            if value is None or value.strip() == "":
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ กรุณากรอกจำนวนยา "
+                    f"{item['drug_name']}"
+                )
+
+                return redirect(
+                    url_for(
+                        "return_box_page",
+                        box_unit_id=box_unit_id
+                    )
+                )
+
+            try:
+
+                remaining = float(value)
+
+            except ValueError:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ จำนวนยา "
+                    f"{item['drug_name']} "
+                    f"ไม่ถูกต้อง"
+                )
+
+                return redirect(
+                    url_for(
+                        "return_box_page",
+                        box_unit_id=box_unit_id
+                    )
+                )
+
+            if remaining < 0:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ {item['drug_name']} "
+                    f"จำนวนที่เหลือห้ามติดลบ"
+                )
+
+                return redirect(
+                    url_for(
+                        "return_box_page",
+                        box_unit_id=box_unit_id
+                    )
+                )
+
+            if remaining > item["original_quantity"]:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ {item['drug_name']} "
+                    f"เหลือได้ไม่เกิน "
+                    f"{item['original_quantity']:g} "
+                    f"{item['drug_unit']}"
+                )
+
+                return redirect(
+                    url_for(
+                        "return_box_page",
+                        box_unit_id=box_unit_id
+                    )
+                )
+
+            used = (
+                item["original_quantity"]
+                - remaining
+            )
+
+            returned = remaining
+
+            return_data.append({
+                "item": item,
+                "remaining": remaining,
+                "used": used,
+                "returned": returned
+            })
+
+        transaction_date = now()
+
+        for data in return_data:
+
+            item = data["item"]
+
+            remaining = data["remaining"]
+
+            used = data["used"]
+
+            returned = data["returned"]
+
+            conn.execute("""
+                UPDATE drugs
+                SET quantity = quantity + ?
+                WHERE id = ?
+            """, (
+                returned,
+                item["drug_id"]
+            ))
+
+            conn.execute("""
+                UPDATE box_unit_items
+                SET
+                    remaining_quantity = ?,
+                    used_quantity = ?,
+                    returned_quantity = ?
+                WHERE id = ?
+            """, (
+                remaining,
+                used,
+                returned,
+                item["id"]
+            ))
+
+            conn.execute("""
+                INSERT INTO transactions
+                (
+                    requester,
+                    drug_id,
+                    quantity,
+                    transaction_type,
+                    transaction_date,
+                    cancelled,
+                    loan_id,
+                    box_loan_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                box_unit["borrower"],
+                item["drug_id"],
+                returned,
+                "คืนกล่อง",
                 transaction_date,
-                cancelled,
-                loan_id,
-                box_loan_id
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            box_unit["borrower"],
-            item["drug_id"],
-            returned,
-            "คืนกล่อง",
-            transaction_date,
-            0,
-            None,
-            box_unit["box_loan_id"]
-        ))
-
-    # ==================================================
-    # เปลี่ยนสถานะกล่องเป็น "คืนแล้ว"
-    # ==================================================
-
-    conn.execute("""
-        UPDATE box_units
-        SET
-            status = 'คืนแล้ว',
-            return_date = ?
-        WHERE id = ?
-    """, (
-        transaction_date,
-        box_unit_id
-    ))
-
-    # ==================================================
-    # ตรวจจำนวนกล่องทั้งหมด
-    # ==================================================
-
-    loan_id = box_unit[
-        "box_loan_id"
-    ]
-
-    count_result = conn.execute("""
-        SELECT
-            COUNT(*) AS total_boxes,
-            SUM(
-                CASE
-                    WHEN status = 'คืนแล้ว'
-                    THEN 1
-                    ELSE 0
-                END
-            ) AS returned_boxes
-        FROM box_units
-        WHERE box_loan_id = ?
-    """, (
-        loan_id,
-    )).fetchone()
-
-    total_boxes = count_result[
-        "total_boxes"
-    ]
-
-    returned_boxes = (
-        count_result["returned_boxes"]
-        or 0
-    )
-
-    # ==================================================
-    # ถ้าคืนครบทุกกล่อง
-    # ==================================================
-
-    if returned_boxes == total_boxes:
+                0,
+                None,
+                box_unit["box_loan_id"]
+            ))
 
         conn.execute("""
-            UPDATE box_loans
+            UPDATE box_units
             SET
-                returned_boxes = ?,
                 status = 'คืนแล้ว',
                 return_date = ?
             WHERE id = ?
         """, (
-            returned_boxes,
             transaction_date,
-            loan_id
+            box_unit_id
         ))
 
-    else:
+        loan_id = box_unit[
+            "box_loan_id"
+        ]
 
-        conn.execute("""
-            UPDATE box_loans
-            SET returned_boxes = ?
-            WHERE id = ?
+        count_result = conn.execute("""
+            SELECT
+                COUNT(*) AS total_boxes,
+                SUM(
+                    CASE
+                        WHEN status = 'คืนแล้ว'
+                        THEN 1
+                        ELSE 0
+                    END
+                ) AS returned_boxes
+            FROM box_units
+            WHERE box_loan_id = ?
         """, (
-            returned_boxes,
-            loan_id
-        ))
+            loan_id,
+        )).fetchone()
 
-    # ==================================================
-    # บันทึกฐานข้อมูล
-    # ==================================================
+        total_boxes = count_result[
+            "total_boxes"
+        ]
 
-    conn.commit()
+        returned_boxes = (
+            count_result["returned_boxes"]
+            or 0
+        )
+
+        if returned_boxes == total_boxes:
+
+            conn.execute("""
+                UPDATE box_loans
+                SET
+                    returned_boxes = ?,
+                    status = 'คืนแล้ว',
+                    return_date = ?
+                WHERE id = ?
+            """, (
+                returned_boxes,
+                transaction_date,
+                loan_id
+            ))
+
+        else:
+
+            conn.execute("""
+                UPDATE box_loans
+                SET returned_boxes = ?
+                WHERE id = ?
+            """, (
+                returned_boxes,
+                loan_id
+            ))
+
+        conn.commit()
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "RETURN BOX ERROR:",
+            e
+        )
+
+        flash(
+            "❌ เกิดข้อผิดพลาดในการคืนกล่อง"
+        )
+
+        conn.close()
+
+        return redirect(
+            url_for("box")
+        )
 
     conn.close()
-
-    # ==================================================
-    # แจ้งผล
-    # ==================================================
 
     flash(
         f"✅ คืนกล่องที่ "
@@ -1750,6 +2120,26 @@ def return_drug():
         ORDER BY external_loans.borrow_date DESC
     """).fetchall()
 
+    # ==================================================
+    # ทุกยาเป็นรายชิ้น
+    # ==================================================
+
+    for loan in loans:
+
+        loan["is_tube"] = True
+
+        loan_units = conn.execute("""
+            SELECT *
+            FROM loan_units
+            WHERE loan_id = ?
+            AND status = 'ยังไม่คืน'
+            ORDER BY unit_number
+        """, (
+            loan["id"],
+        )).fetchall()
+
+        loan["loan_units"] = loan_units
+
     conn.close()
 
     return render_template(
@@ -1771,10 +2161,6 @@ def return_drug_submit():
             request.form["loan_id"]
         )
 
-        remaining_percent = float(
-            request.form["remaining_percent"]
-        )
-
     except (ValueError, KeyError):
 
         flash(
@@ -1785,155 +2171,331 @@ def return_drug_submit():
             url_for("return_drug")
         )
 
-    if remaining_percent < 0:
-
-        flash(
-            "❌ เปอร์เซ็นต์ต้องไม่ต่ำกว่า 0%"
-        )
-
-        return redirect(
-            url_for("return_drug")
-        )
-
-    if remaining_percent > 100:
-
-        flash(
-            "❌ เปอร์เซ็นต์ต้องไม่เกิน 100%"
-        )
-
-        return redirect(
-            url_for("return_drug")
-        )
-
     conn = get_db()
 
-    loan = conn.execute("""
-        SELECT
-            external_loans.*,
-            drugs.name AS drug_name,
-            drugs.unit AS drug_unit,
-            drugs.quantity AS stock_quantity
-        FROM external_loans
-        JOIN drugs
-            ON external_loans.drug_id = drugs.id
-        WHERE external_loans.id = ?
-        AND external_loans.status = 'ยังไม่คืน'
-    """, (
-        loan_id,
-    )).fetchone()
+    try:
 
-    if loan is None:
+        loan = conn.execute("""
+            SELECT
+                external_loans.*,
+                drugs.name AS drug_name,
+                drugs.unit AS drug_unit,
+                drugs.quantity AS stock_quantity
+            FROM external_loans
+            JOIN drugs
+                ON external_loans.drug_id = drugs.id
+            WHERE external_loans.id = ?
+            AND external_loans.status = 'ยังไม่คืน'
+            FOR UPDATE
+        """, (
+            loan_id,
+        )).fetchone()
+
+        if loan is None:
+
+            conn.rollback()
+            conn.close()
+
+            flash(
+                "❌ ไม่พบรายการยืม"
+            )
+
+            return redirect(
+                url_for("return_drug")
+            )
+
+        # ==================================================
+        # ทุกยาคืนเป็นรายชิ้น
+        # ==================================================
+
+        units = conn.execute("""
+            SELECT *
+            FROM loan_units
+            WHERE loan_id = ?
+            AND status = 'ยังไม่คืน'
+            ORDER BY unit_number
+        """, (
+            loan_id,
+        )).fetchall()
+
+        if len(units) == 0:
+
+            conn.rollback()
+            conn.close()
+
+            flash(
+                "❌ ไม่พบข้อมูลยารายชิ้น "
+                "ของรายการยืมนี้"
+            )
+
+            return redirect(
+                url_for("return_drug")
+            )
+
+        return_data = []
+
+        total_returned = 0
+        total_used = 0
+        total_percent = 0
+
+        # ==================================================
+        # อ่านเปอร์เซ็นต์ทีละชิ้น
+        # ==================================================
+
+        for unit in units:
+
+            field_name = (
+                f"unit_{unit['id']}"
+            )
+
+            value = request.form.get(
+                field_name
+            )
+
+            if value is None or value.strip() == "":
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ กรุณากรอกเปอร์เซ็นต์ "
+                    f"ของ {loan['drug_unit']} "
+                    f"ที่ {unit['unit_number']}"
+                )
+
+                return redirect(
+                    url_for("return_drug")
+                )
+
+            try:
+
+                remaining_percent = float(
+                    value
+                )
+
+            except ValueError:
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ เปอร์เซ็นต์ของ "
+                    f"{loan['drug_unit']} "
+                    f"ที่ {unit['unit_number']} "
+                    f"ไม่ถูกต้อง"
+                )
+
+                return redirect(
+                    url_for("return_drug")
+                )
+
+            if (
+                remaining_percent < 0
+                or remaining_percent > 100
+            ):
+
+                conn.rollback()
+                conn.close()
+
+                flash(
+                    f"❌ {loan['drug_unit']} "
+                    f"ที่ {unit['unit_number']} "
+                    f"ต้องอยู่ระหว่าง 0–100%"
+                )
+
+                return redirect(
+                    url_for("return_drug")
+                )
+
+            # ==================================================
+            # แต่ละชิ้นมีค่าเริ่มต้น = 1 ชิ้น
+            # ==================================================
+
+            returned_quantity = (
+                remaining_percent / 100
+            )
+
+            used_quantity = (
+                1 - returned_quantity
+            )
+
+            return_data.append({
+                "unit": unit,
+                "remaining_percent":
+                    remaining_percent,
+                "returned_quantity":
+                    returned_quantity,
+                "used_quantity":
+                    used_quantity
+            })
+
+            total_returned += (
+                returned_quantity
+            )
+
+            total_used += (
+                used_quantity
+            )
+
+            total_percent += (
+                remaining_percent
+            )
+
+        # ==================================================
+        # เพิ่มของที่เหลือกลับเข้าสต๊อก
+        # ==================================================
+
+        new_stock = (
+            loan["stock_quantity"]
+            + total_returned
+        )
+
+        conn.execute("""
+            UPDATE drugs
+            SET quantity = ?
+            WHERE id = ?
+        """, (
+            new_stock,
+            loan["drug_id"]
+        ))
+
+        return_date = now()
+
+        # ==================================================
+        # บันทึกแต่ละชิ้น
+        # ==================================================
+
+        for data in return_data:
+
+            unit = data["unit"]
+
+            remaining_percent = data[
+                "remaining_percent"
+            ]
+
+            returned_quantity = data[
+                "returned_quantity"
+            ]
+
+            used_quantity = data[
+                "used_quantity"
+            ]
+
+            conn.execute("""
+                UPDATE loan_units
+                SET
+                    remaining_percent = ?,
+                    used_quantity = ?,
+                    returned_quantity = ?,
+                    status = 'คืนแล้ว',
+                    return_date = ?
+                WHERE id = ?
+            """, (
+                remaining_percent,
+                used_quantity,
+                returned_quantity,
+                return_date,
+                unit["id"]
+            ))
+
+            # ==================================================
+            # ประวัติแยกแต่ละชิ้น
+            #
+            # เช่น
+            # คืนขวดที่ 1 (80%)
+            # คืนขวดที่ 2 (50%)
+            # ==================================================
+
+            conn.execute("""
+                INSERT INTO transactions
+                (
+                    requester,
+                    drug_id,
+                    quantity,
+                    transaction_type,
+                    transaction_date,
+                    cancelled,
+                    loan_id,
+                    box_loan_id
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                loan["borrower"],
+                loan["drug_id"],
+                returned_quantity,
+                (
+                    f"คืน{loan['drug_unit']}"
+                    f"ที่ {unit['unit_number']} "
+                    f"({remaining_percent:g}%)"
+                ),
+                return_date,
+                0,
+                loan_id,
+                None
+            ))
+
+        # ==================================================
+        # ค่าเฉลี่ยเปอร์เซ็นต์
+        # ==================================================
+
+        average_percent = (
+            total_percent / len(units)
+        )
+
+        # ==================================================
+        # อัปเดต external_loans
+        # ==================================================
+
+        conn.execute("""
+            UPDATE external_loans
+            SET
+                remaining_percent = ?,
+                used_quantity = ?,
+                status = 'คืนแล้ว',
+                return_date = ?
+            WHERE id = ?
+        """, (
+            average_percent,
+            total_used,
+            return_date,
+            loan_id
+        ))
+
+        conn.commit()
+        conn.close()
+
+        flash(
+            f"✅ คืน {loan['drug_name']} "
+            f"{loan['quantity']:g} "
+            f"{loan['drug_unit']} สำเร็จ | "
+            f"คืนเข้าสต๊อก {total_returned:g} "
+            f"{loan['drug_unit']} | "
+            f"ใช้ไป {total_used:g} "
+            f"{loan['drug_unit']}"
+        )
+
+        return redirect(
+            url_for("return_drug")
+        )
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "RETURN DRUG ERROR:",
+            e
+        )
 
         conn.close()
 
         flash(
-            "❌ ไม่พบรายการยืม"
+            "❌ เกิดข้อผิดพลาดในการคืนยา"
         )
 
         return redirect(
             url_for("return_drug")
         )
-
-    # ==================================================
-    # คำนวณ
-    # ==================================================
-
-    used_percent = (
-        100 - remaining_percent
-    )
-
-    used_quantity = (
-        loan["quantity"]
-        * used_percent
-        / 100
-    )
-
-    returned_quantity = (
-        loan["quantity"]
-        * remaining_percent
-        / 100
-    )
-
-    new_stock = (
-        loan["stock_quantity"]
-        + returned_quantity
-    )
-
-    # ==================================================
-    # เพิ่มยากลับเข้าสต๊อก
-    # ==================================================
-
-    conn.execute("""
-        UPDATE drugs
-        SET quantity = ?
-        WHERE id = ?
-    """, (
-        new_stock,
-        loan["drug_id"]
-    ))
-
-    return_date = now()
-
-    # ==================================================
-    # เปลี่ยนสถานะการยืม
-    # ==================================================
-
-    conn.execute("""
-        UPDATE external_loans
-        SET
-            remaining_percent = ?,
-            used_quantity = ?,
-            status = 'คืนแล้ว',
-            return_date = ?
-        WHERE id = ?
-    """, (
-        remaining_percent,
-        used_quantity,
-        return_date,
-        loan_id
-    ))
-
-    # ==================================================
-    # บันทึกประวัติ
-    # ==================================================
-
-    conn.execute("""
-        INSERT INTO transactions
-        (
-            requester,
-            drug_id,
-            quantity,
-            transaction_type,
-            transaction_date,
-            cancelled,
-            loan_id,
-            box_loan_id
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        loan["borrower"],
-        loan["drug_id"],
-        returned_quantity,
-        "คืน",
-        return_date,
-        0,
-        loan_id,
-        None
-    ))
-
-    conn.commit()
-    conn.close()
-
-    flash(
-        f"✅ คืนยา {loan['drug_name']} สำเร็จ | "
-        f"เหลือ {remaining_percent:g}% | "
-        f"ใช้ไป {used_quantity:g} "
-        f"{loan['drug_unit']}"
-    )
-
-    return redirect(
-        url_for("return_drug")
-    )
 
 
 # ==================================================
@@ -1997,204 +2559,233 @@ def cancel_transaction():
 
     conn = get_db()
 
-    transaction = conn.execute("""
-        SELECT
-            transactions.*,
-            drugs.name AS drug_name,
-            drugs.unit AS drug_unit,
-            drugs.quantity AS stock_quantity
-        FROM transactions
-        LEFT JOIN drugs
-            ON transactions.drug_id = drugs.id
-        WHERE transactions.id = ?
-    """, (
-        transaction_id,
-    )).fetchone()
+    try:
 
-    if transaction is None:
+        transaction = conn.execute("""
+            SELECT
+                transactions.*,
+                drugs.name AS drug_name,
+                drugs.unit AS drug_unit,
+                drugs.quantity AS stock_quantity
+            FROM transactions
+            LEFT JOIN drugs
+                ON transactions.drug_id = drugs.id
+            WHERE transactions.id = ?
+        """, (
+            transaction_id,
+        )).fetchone()
 
+        if transaction is None:
+
+            conn.close()
+
+            flash(
+                "❌ ไม่พบรายการ"
+            )
+
+            return redirect(
+                url_for("report")
+            )
+
+        if transaction["cancelled"] == 1:
+
+            conn.close()
+
+            flash(
+                "⚠️ รายการนี้ถูกยกเลิกแล้ว"
+            )
+
+            return redirect(
+                url_for("report")
+            )
+
+        # ==================================================
+        # ห้ามยกเลิกรายการคืน
+        # ==================================================
+
+        transaction_type = str(
+            transaction["transaction_type"]
+        )
+
+        if (
+            transaction_type == "คืน"
+            or
+            transaction_type == "คืนกล่อง"
+            or
+            transaction_type.startswith("คืน")
+        ):
+
+            conn.close()
+
+            flash(
+                "❌ ไม่สามารถยกเลิกรายการคืนได้"
+            )
+
+            return redirect(
+                url_for("report")
+            )
+
+        if transaction["box_loan_id"] is not None:
+
+            conn.close()
+
+            flash(
+                "❌ รายการกล่อง "
+                "ให้จัดการผ่านเมนู 📦 จัดกล่อง"
+            )
+
+            return redirect(
+                url_for("report")
+            )
+
+        if transaction["transaction_type"] == "ยืม":
+
+            if transaction["loan_id"] is not None:
+
+                loan = conn.execute("""
+                    SELECT *
+                    FROM external_loans
+                    WHERE id = ?
+                """, (
+                    transaction["loan_id"],
+                )).fetchone()
+
+                if loan is not None:
+
+                    if loan["status"] != "ยังไม่คืน":
+
+                        conn.close()
+
+                        flash(
+                            "❌ รายการนี้ถูกคืนหรือยกเลิกแล้ว"
+                        )
+
+                        return redirect(
+                            url_for("report")
+                        )
+
+        if transaction["stock_quantity"] is None:
+
+            conn.close()
+
+            flash(
+                "❌ ไม่พบรายการยาในสต๊อก"
+            )
+
+            return redirect(
+                url_for("report")
+            )
+
+        new_stock = (
+            transaction["stock_quantity"]
+            + transaction["quantity"]
+        )
+
+        conn.execute("""
+            UPDATE drugs
+            SET quantity = ?
+            WHERE id = ?
+        """, (
+            new_stock,
+            transaction["drug_id"]
+        ))
+
+        # ==================================================
+        # ถ้ายกเลิกการยืม
+        # เปลี่ยนสถานะ loan และ loan_units
+        # ==================================================
+
+        if transaction["transaction_type"] == "ยืม":
+
+            if transaction["loan_id"] is not None:
+
+                conn.execute("""
+                    UPDATE external_loans
+                    SET
+                        status = 'ยกเลิก',
+                        return_date = ?
+                    WHERE id = ?
+                """, (
+                    now(),
+                    transaction["loan_id"]
+                ))
+
+                conn.execute("""
+                    UPDATE loan_units
+                    SET
+                        status = 'ยกเลิก',
+                        return_date = ?
+                    WHERE loan_id = ?
+                    AND status = 'ยังไม่คืน'
+                """, (
+                    now(),
+                    transaction["loan_id"]
+                ))
+
+        conn.execute("""
+            UPDATE transactions
+            SET cancelled = 1
+            WHERE id = ?
+        """, (
+            transaction_id,
+        ))
+
+        conn.execute("""
+            INSERT INTO transactions
+            (
+                requester,
+                drug_id,
+                quantity,
+                transaction_type,
+                transaction_date,
+                cancelled,
+                loan_id,
+                box_loan_id
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            transaction["requester"],
+            transaction["drug_id"],
+            transaction["quantity"],
+            "ยกเลิก",
+            now(),
+            0,
+            transaction["loan_id"],
+            None
+        ))
+
+        conn.commit()
         conn.close()
 
         flash(
-            "❌ ไม่พบรายการ"
+            f"✅ ยกเลิกรายการ "
+            f"{transaction['drug_name']} "
+            f"{transaction['quantity']:g} "
+            f"{transaction['drug_unit']} แล้ว"
         )
 
         return redirect(
             url_for("report")
         )
 
-    # ==================================================
-    # ตรวจว่าถูกยกเลิกไปแล้วหรือยัง
-    # ==================================================
+    except Exception as e:
 
-    if transaction["cancelled"] == 1:
+        conn.rollback()
+
+        print(
+            "CANCEL ERROR:",
+            e
+        )
 
         conn.close()
 
         flash(
-            "⚠️ รายการนี้ถูกยกเลิกแล้ว"
+            "❌ ไม่สามารถยกเลิกรายการได้"
         )
 
         return redirect(
             url_for("report")
         )
-
-    # ==================================================
-    # รายการคืนยกเลิกไม่ได้
-    # ==================================================
-
-    if transaction["transaction_type"] in (
-        "คืน",
-        "คืนกล่อง"
-    ):
-
-        conn.close()
-
-        flash(
-            "❌ ไม่สามารถยกเลิกรายการคืนได้"
-        )
-
-        return redirect(
-            url_for("report")
-        )
-
-    # ==================================================
-    # รายการกล่อง
-    # ==================================================
-
-    if transaction["box_loan_id"] is not None:
-
-        conn.close()
-
-        flash(
-            "❌ รายการกล่อง "
-            "ให้จัดการผ่านเมนู 📦 จัดกล่อง"
-        )
-
-        return redirect(
-            url_for("report")
-        )
-
-    # ==================================================
-    # ยืมภายนอก
-    # ==================================================
-
-    if transaction["transaction_type"] == "ยืม":
-
-        if transaction["loan_id"] is not None:
-
-            loan = conn.execute("""
-                SELECT *
-                FROM external_loans
-                WHERE id = ?
-            """, (
-                transaction["loan_id"],
-            )).fetchone()
-
-            if loan is not None:
-
-                if loan["status"] != "ยังไม่คืน":
-
-                    conn.close()
-
-                    flash(
-                        "❌ รายการนี้ถูกคืนหรือยกเลิกแล้ว"
-                    )
-
-                    return redirect(
-                        url_for("report")
-                    )
-
-    # ==================================================
-    # คืนยาเข้าสต๊อก
-    # ==================================================
-
-    new_stock = (
-        transaction["stock_quantity"]
-        + transaction["quantity"]
-    )
-
-    conn.execute("""
-        UPDATE drugs
-        SET quantity = ?
-        WHERE id = ?
-    """, (
-        new_stock,
-        transaction["drug_id"]
-    ))
-
-    # ==================================================
-    # ยกเลิก loan
-    # ==================================================
-
-    if transaction["transaction_type"] == "ยืม":
-
-        if transaction["loan_id"] is not None:
-
-            conn.execute("""
-                UPDATE external_loans
-                SET
-                    status = 'ยกเลิก',
-                    return_date = ?
-                WHERE id = ?
-            """, (
-                now(),
-                transaction["loan_id"]
-            ))
-
-    # ==================================================
-    # ทำเครื่องหมายยกเลิก
-    # ==================================================
-
-    conn.execute("""
-        UPDATE transactions
-        SET cancelled = 1
-        WHERE id = ?
-    """, (
-        transaction_id,
-    ))
-
-    # ==================================================
-    # บันทึกประวัติยกเลิก
-    # ==================================================
-
-    conn.execute("""
-        INSERT INTO transactions
-        (
-            requester,
-            drug_id,
-            quantity,
-            transaction_type,
-            transaction_date,
-            cancelled,
-            loan_id,
-            box_loan_id
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        transaction["requester"],
-        transaction["drug_id"],
-        transaction["quantity"],
-        "ยกเลิก",
-        now(),
-        0,
-        transaction["loan_id"],
-        None
-    ))
-
-    conn.commit()
-    conn.close()
-
-    flash(
-        f"✅ ยกเลิกรายการ "
-        f"{transaction['drug_name']} "
-        f"{transaction['quantity']:g} "
-        f"{transaction['drug_unit']} แล้ว"
-    )
-
-    return redirect(
-        url_for("report")
-    )
 
 
 # ==================================================
@@ -2206,35 +2797,61 @@ def reset_all():
 
     conn = get_db()
 
-    conn.execute("""
-        DELETE FROM transactions
-    """)
+    try:
 
-    conn.execute("""
-        DELETE FROM external_loans
-    """)
+        conn.execute("""
+            DELETE FROM loan_units
+        """)
 
-    conn.execute("""
-        DELETE FROM box_unit_items
-    """)
+        conn.execute("""
+            DELETE FROM transactions
+        """)
 
-    conn.execute("""
-        DELETE FROM box_units
-    """)
+        conn.execute("""
+            DELETE FROM external_loans
+        """)
 
-    conn.execute("""
-        DELETE FROM box_items
-    """)
+        conn.execute("""
+            DELETE FROM box_unit_items
+        """)
 
-    conn.execute("""
-        DELETE FROM box_loans
-    """)
+        conn.execute("""
+            DELETE FROM box_units
+        """)
 
-    conn.execute("""
-        DELETE FROM drugs
-    """)
+        conn.execute("""
+            DELETE FROM box_items
+        """)
 
-    conn.commit()
+        conn.execute("""
+            DELETE FROM box_loans
+        """)
+
+        conn.execute("""
+            DELETE FROM drugs
+        """)
+
+        conn.commit()
+
+    except Exception as e:
+
+        conn.rollback()
+
+        print(
+            "RESET ERROR:",
+            e
+        )
+
+        flash(
+            "❌ ไม่สามารถรีเซ็ตข้อมูลได้"
+        )
+
+        conn.close()
+
+        return redirect(
+            url_for("stock")
+        )
+
     conn.close()
 
     flash(

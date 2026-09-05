@@ -8,7 +8,7 @@
     <meta name="viewport"
           content="width=device-width, initial-scale=1.0">
 
-    <title>🔄 คืนยาภายนอก</title>
+    <title>🔄 คืนยา</title>
 
     <style>
 
@@ -25,17 +25,11 @@
             padding: 25px;
         }
 
-        header h1 {
-            margin: 0;
-        }
-
         .container {
             width: 90%;
-            max-width: 800px;
+            max-width: 900px;
             margin: 30px auto;
         }
-
-        /* ปุ่มกลับหน้าหลัก */
 
         .back {
             display: inline-block;
@@ -48,25 +42,12 @@
             font-weight: bold;
         }
 
-        .back:hover {
-            background: #555555;
-        }
-
         .card {
             background: white;
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 3px 10px rgba(0,0,0,0.1);
             margin-bottom: 25px;
-        }
-
-        .info {
-            background: #e3f2fd;
-            color: #1565c0;
-            padding: 15px;
-            border-radius: 8px;
-            line-height: 1.7;
-            margin-bottom: 20px;
         }
 
         .message {
@@ -82,14 +63,12 @@
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
+            background: white;
         }
 
         .loan h3 {
             margin-top: 0;
-        }
-
-        .detail {
-            margin: 8px 0;
+            color: #1976d2;
         }
 
         label {
@@ -101,8 +80,8 @@
 
         input {
             width: 100%;
-            padding: 12px;
             box-sizing: border-box;
+            padding: 12px;
             border: 1px solid #ccc;
             border-radius: 8px;
             font-size: 16px;
@@ -110,25 +89,40 @@
 
         button {
             margin-top: 20px;
-            width: 100%;
-            padding: 13px;
+            padding: 12px 20px;
             border: none;
             border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
             background: #1976d2;
             color: white;
-            font-size: 16px;
-            cursor: pointer;
         }
 
         button:hover {
             background: #125ca1;
         }
 
-        .percent-box {
-            background: #f5f5f5;
+        .unit {
+            background: #f8f9fa;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 12px;
+        }
+
+        .unit-title {
+            font-weight: bold;
+            font-size: 17px;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .info {
+            background: #e3f2fd;
+            color: #1565c0;
             padding: 15px;
             border-radius: 8px;
-            margin-top: 15px;
+            margin-bottom: 20px;
         }
 
         .example {
@@ -136,14 +130,19 @@
             color: #795548;
             padding: 15px;
             border-radius: 8px;
-            margin-top: 20px;
-            line-height: 1.7;
+            margin-top: 15px;
         }
 
         .empty {
             text-align: center;
-            padding: 30px;
             color: #777;
+            padding: 30px;
+        }
+
+        .unit-count {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
         }
 
     </style>
@@ -156,17 +155,15 @@
 
 <header>
 
-    <h1>🔄 คืนยาภายนอก</h1>
+    <h1>🔄 คืนยา</h1>
 
-    <p>ระบุเปอร์เซ็นต์ของยาที่เหลือเมื่อนำกลับมา</p>
+    <p>บันทึกยาที่เหลือจากการยืม</p>
 
 </header>
 
 
 <div class="container">
 
-
-    <!-- กลับหน้าหลัก -->
 
     <a href="{{ url_for('home') }}" class="back">
         ← กลับหน้าหลัก
@@ -190,139 +187,133 @@
     {% endwith %}
 
 
-    <div class="card">
+    <div class="info">
 
+        <b>📋 วิธีกรอกเปอร์เซ็นต์</b>
 
-        <div class="info">
+        <br><br>
 
-            <b>วิธีคืนยาภายนอก</b>
+        <b>100%</b> = ยาเหลือเต็ม
 
-            <br>
+        <br>
 
-            ระบบไม่ต้องให้กรอกปริมาตร
+        <b>80%</b> = เหลือประมาณ 80%
 
-            <br>
+        <br>
 
-            ให้กรอกเพียง
-            <b>เปอร์เซ็นต์ (%) ของยาที่เหลือ</b>
+        <b>50%</b> = เหลือครึ่งหนึ่ง
 
-            เมื่อนำยากลับมา
+        <br>
 
-            <br><br>
+        <b>0%</b> = ใช้หมดแล้ว
 
-            ระบบจะคำนวณจำนวนที่ใช้ไปให้อัตโนมัติ
+        <br><br>
 
-        </div>
-
-
-        <div class="example">
-
-            <b>ตัวอย่าง</b>
-
-            <br>
-
-            ยืม 100 เม็ด
-
-            <br>
-
-            นำกลับมาเหลือ 80%
-
-            <br>
-
-            ใช้ไป = 100 - 80 = <b>20%</b>
-
-            <br>
-
-            ดังนั้นใช้ไป
-            <b>20 เม็ด</b>
-
-            และนำกลับเข้าสู่สต๊อก
-            <b>80 เม็ด</b>
-
-        </div>
-
+        <b>⚠️ สำคัญ:</b>
+        ยาทุกชนิดจะแยกเป็นรายชิ้น
+        ไม่ว่าจะเป็น เม็ด ขวด หลอด กล่อง หรือหน่วยอื่น ๆ
 
     </div>
 
 
-    <div class="card">
+    {% if loans %}
 
 
-        <h2>
-            📋 รายการยืมที่ยังไม่คืน
-        </h2>
+        {% for loan in loans %}
 
 
-        {% if loans %}
+        <div class="loan">
 
 
-            {% for loan in loans %}
+            <h3>
+                💊 {{ loan["drug_name"] }}
+            </h3>
 
 
-            <div class="loan">
+            <p>
+                <b>ผู้ยืม:</b>
+                {{ loan["borrower"] }}
+            </p>
 
 
-                <h3>
-                    💊 {{ loan["drug_name"] }}
-                </h3>
+            <p>
+                <b>จำนวนที่ยืม:</b>
+                {{ loan["quantity"]|float|round(2) }}
+                {{ loan["drug_unit"] }}
+            </p>
 
 
-                <div class="detail">
+            <p>
+                <b>วันที่ยืม:</b>
+                {{ loan["borrow_date"] }}
+            </p>
 
-                    👤 ผู้ยืม:
 
-                    <b>
-                        {{ loan["borrower"] }}
-                    </b>
+            <form
+                action="{{ url_for('return_drug_submit') }}"
+                method="POST"
+            >
+
+
+                <input
+                    type="hidden"
+                    name="loan_id"
+                    value="{{ loan['id'] }}"
+                >
+
+
+                <div class="info">
+
+                    <b>🔍 คืนยาเป็นรายชิ้น</b>
+
+                    <br><br>
+
+                    กรุณากรอกเปอร์เซ็นต์ที่เหลือ
+                    ของยา <b>แต่ละชิ้น</b>
+
+                    <br>
+
+                    ระบบจะคำนวณจำนวนยาที่คืนเข้าสต๊อกให้อัตโนมัติ
 
                 </div>
 
 
-                <div class="detail">
-
-                    📦 จำนวนที่ยืม:
-
-                    <b>
-                        {{ "%.2f"|format(loan["quantity"]) }}
-                        {{ loan["drug_unit"] }}
-                    </b>
-
-                </div>
+                {% if loan["loan_units"] %}
 
 
-                <div class="detail">
+                    <div class="unit-count">
 
-                    📅 วันที่ยืม:
+                        จำนวนที่ต้องกรอก:
+                        <b>{{ loan["loan_units"]|length }}</b>
+                        ชิ้น
 
-                    {{ loan["borrow_date"] }}
-
-                </div>
-
-
-                <div class="percent-box">
+                    </div>
 
 
-                    <form
-                        action="{{ url_for('return_drug_submit') }}"
-                        method="POST"
-                    >
+                    {% for unit in loan["loan_units"] %}
 
 
-                        <input
-                            type="hidden"
-                            name="loan_id"
-                            value="{{ loan['id'] }}"
-                        >
+                    <div class="unit">
+
+
+                        <div class="unit-title">
+
+                            💊 {{ loan["drug_unit"] }}
+                            ที่ {{ unit["unit_number"] }}
+
+                        </div>
 
 
                         <label>
-                            📊 ยาที่เหลือ
+
+                            ยาที่เหลือ (%)
+
                         </label>
 
 
                         <input
                             type="number"
-                            name="remaining_percent"
+                            name="unit_{{ unit['id'] }}"
                             min="0"
                             max="100"
                             step="1"
@@ -331,54 +322,128 @@
                         >
 
 
-                        <small>
-                            กรอกเป็นเปอร์เซ็นต์ เช่น 100, 80, 50 หรือ 0
-                        </small>
+                    </div>
 
 
-                        <button type="submit">
-
-                            🔄 ยืนยันการคืน
-
-                        </button>
+                    {% endfor %}
 
 
-                    </form>
+                    <div class="example">
+
+                        <b>ตัวอย่างการกรอก</b>
+
+                        <br><br>
+
+                        {% if loan["loan_units"]|length >= 5 %}
+
+                            {{ loan["drug_unit"] }} 1 → 80%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 2 → 50%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 3 → 20%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 4 → 100%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 5 → 0%
+
+                        {% elif loan["loan_units"]|length >= 3 %}
+
+                            {{ loan["drug_unit"] }} 1 → 80%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 2 → 50%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 3 → 100%
+
+                        {% elif loan["loan_units"]|length == 2 %}
+
+                            {{ loan["drug_unit"] }} 1 → 80%
+
+                            <br>
+
+                            {{ loan["drug_unit"] }} 2 → 50%
+
+                        {% else %}
+
+                            {{ loan["drug_unit"] }} 1 → 80%
+
+                        {% endif %}
+
+                        <br><br>
+
+                        ระบบจะนำเปอร์เซ็นต์ของแต่ละชิ้น
+                        มาคำนวณจำนวนที่คืนเข้าสต๊อก
+
+                    </div>
 
 
-                </div>
+                {% else %}
 
 
-            </div>
+                    <div class="message">
+
+                        ⚠️ รายการนี้ยังไม่มีข้อมูลแยกเป็นรายชิ้น
+
+                    </div>
 
 
-            {% endfor %}
+                    <p>
+
+                        กรุณาตรวจสอบว่ารายการนี้ถูกสร้างหลังจาก
+                        เปิดใช้ระบบแยกยารายชิ้นแล้ว
+
+                    </p>
 
 
-        {% else %}
+                {% endif %}
 
+
+                {% if loan["loan_units"] %}
+
+                    <button type="submit">
+
+                        ✅ ยืนยันคืนยา
+
+                    </button>
+
+                {% endif %}
+
+
+            </form>
+
+
+        </div>
+
+
+        {% endfor %}
+
+
+    {% else %}
+
+
+        <div class="card">
 
             <div class="empty">
 
-                <div style="font-size: 50px;">
-                    ✅
-                </div>
-
-                <h3>
-                    ไม่มีรายการยืมที่รอคืน
-                </h3>
-
-                <p>
-                    ตอนนี้ไม่มีรายการยาภายนอกที่ค้างคืน
-                </p>
+                🎉 ไม่มีรายการยาที่รอคืน
 
             </div>
 
+        </div>
 
-        {% endif %}
 
-
-    </div>
+    {% endif %}
 
 
 </div>
