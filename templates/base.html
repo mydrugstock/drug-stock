@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}ระบบจัดการสต๊อกยา{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="bg"><div class="orb o1"></div><div class="orb o2"></div><div class="orb o3"></div></div>
+
+  <nav class="nav">
+    <a class="brand" href="{{ url_for('home') }}"><i>💊</i><span>Drug Stock</span></a>
+    <div class="nav-links">
+      <a href="{{ url_for('borrow') }}"      class="{{ 'active' if request.endpoint == 'borrow' }}">💊 ยืม / ขอ</a>
+      <a href="{{ url_for('return_drug') }}" class="{{ 'active' if request.endpoint == 'return_drug' }}">🔄 คืนยา</a>
+      <a href="{{ url_for('stock') }}"       class="{{ 'active' if request.endpoint == 'stock' }}">📦 สต๊อก</a>
+      <a href="{{ url_for('box') }}"         class="{{ 'active' if request.endpoint in ['box','return_box_page'] }}">🗃️ จัดกล่อง</a>
+      <a href="{{ url_for('report') }}"      class="{{ 'active' if request.endpoint == 'report' }}">📊 รายงาน</a>
+    </div>
+  </nav>
+
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <div class="toasts">
+      {% for m in messages %}
+        <div class="toast {{ 'err' if m.startswith('❌') else 'warn' if m.startswith('⚠️') else '' }}">
+          {{ m }}<button type="button" class="x" aria-label="ปิด">✕</button><span class="t"></span>
+        </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+
+  {% block content %}{% endblock %}
+
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
