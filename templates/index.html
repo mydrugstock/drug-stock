@@ -2,11 +2,18 @@
 {% block title %}ระบบจัดการสต๊อกยา{% endblock %}
 {% block content %}
 <main class="wrap">
-  <header class="hero">
+  <header class="hero big">
     <div class="ico">💊</div>
     <h1>ระบบจัดการสต๊อกยา</h1>
     <p>ยืม • ขอ • คืน • ตรวจสอบสต๊อก ในที่เดียว</p>
   </header>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <div class="grp"><span>💊 ยืมยา</span><span>📦 ขอยา</span><span>🔄 คืนยา</span><span>🗃️ จัดกล่อง</span><span>📊 รายงาน</span><span>🔔 สต๊อกใกล้หมด</span></div>
+      <div class="grp"><span>💊 ยืมยา</span><span>📦 ขอยา</span><span>🔄 คืนยา</span><span>🗃️ จัดกล่อง</span><span>📊 รายงาน</span><span>🔔 สต๊อกใกล้หมด</span></div>
+    </div>
+  </div>
 
   <div class="group"><div class="gi">👤</div><div><h2>ผู้ใช้งาน</h2><span>จัดการการยืม ขอ และคืนยา</span></div></div>
   <div class="menu">
@@ -20,6 +27,17 @@
     <div class="card"><div class="mi">🗃️</div><h3>จัดกล่อง</h3><p>จัดการยาและอุปกรณ์ภายในกล่อง</p><a class="btn" href="{{ url_for('box') }}">จัดการกล่อง →</a></div>
     <div class="card"><div class="mi">📊</div><h3>รายงาน / ประวัติ</h3><p>ดูประวัติการยืม ขอ คืน และการเปลี่ยนแปลงทั้งหมด</p><a class="btn btn-ghost" href="{{ url_for('report') }}">ดูรายงาน →</a></div>
   </div>
+
+  <section class="band">
+    <h2>ตั้งแต่ยืมจนถึงคืน ครบในระบบเดียว</h2>
+    <p class="sub">ทุกครั้งที่ยืม ระบบแยกติดตามเป็นรายชิ้น และปรับสต๊อกให้อัตโนมัติ</p>
+    <div class="steps">
+      <div class="step" tabindex="0" role="button"><i></i><small>ขั้นที่ 1</small><h3>ยืม / ขอ</h3><p>เลือกยา กรอกจำนวน ระบบหักสต๊อกทันที</p></div>
+      <div class="step" tabindex="0" role="button"><i></i><small>ขั้นที่ 2</small><h3>ติดตามรายชิ้น</h3><p>ยืมแต่ละชิ้นแยกเก็บ รู้ว่าชิ้นไหนยังไม่คืน</p></div>
+      <div class="step" tabindex="0" role="button"><i></i><small>ขั้นที่ 3</small><h3>คืนยา</h3><p>กรอกเปอร์เซ็นต์ที่เหลือ ระบบคำนวณที่ใช้ไป</p></div>
+      <div class="step" tabindex="0" role="button"><i></i><small>ขั้นที่ 4</small><h3>สต๊อกอัปเดต</h3><p>ยาที่เหลือกลับเข้าคลัง ดูย้อนหลังในรายงาน</p></div>
+    </div>
+  </section>
 </main>
 <footer>ระบบจัดการสต๊อกยา</footer>
 {% endblock %}
