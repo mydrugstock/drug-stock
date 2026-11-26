@@ -129,4 +129,29 @@
   window.addEventListener('pageshow', function (e) {
     if (e.persisted) $$('button[type=submit]').forEach(function (b) { b.disabled = false; b.style.opacity = ''; });
   });
+
+  // 11) อนิเมชั่นเปลี่ยนหน้า (ม่านภูเขา)
+  var root = document.documentElement;
+  if (root.classList.contains('pt-in')) setTimeout(function () { root.classList.remove('pt-in'); }, 1700);
+  // กดปุ่มย้อนกลับของเบราว์เซอร์ ต้องไม่มีม่านค้าง
+  window.addEventListener('pageshow', function (e) {
+    if (e.persisted) root.classList.remove('pt-in', 'pt-out');
+  });
+  document.addEventListener('click', function (e) {
+    if (reduce || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    var a = e.target.closest && e.target.closest('a[href]');
+    if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
+    if (a.origin !== location.origin) return;                       // ลิงก์ออกนอกเว็บ
+    if (a.hash && a.pathname === location.pathname && a.search === location.search) return; // เลื่อนในหน้าเดิม
+    e.preventDefault();
+    if (root.classList.contains('pt-out')) return;                  // กันกดรัว
+    root.classList.remove('pt-in');
+    root.classList.add('pt-out');
+    setTimeout(function () {
+      try { sessionStorage.setItem('pt', '1'); } catch (err) {}
+      location.href = a.href;
+    }, 520);
+    // เผื่อโหลดหน้าใหม่ไม่สำเร็จ จะได้ไม่ค้าง
+    setTimeout(function () { root.classList.remove('pt-out'); }, 8000);
+  });
 })();
