@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}รายงานการใช้งาน{% endblock %}
+{% block content %}
+<main class="wrap wide">
+  <header class="hero"><div class="ico">📊</div><h1>รายงานการใช้งาน</h1><p>ประวัติการทำรายการทั้งหมดของระบบ</p></header>
+  <a href="{{ url_for('home') }}" class="back">← กลับหน้าหลัก</a>
+
+  <div class="stats">
+    <div class="stat"><b data-count="{{ transactions|length }}">0</b><span>รายการทั้งหมด</span></div>
+    <div class="stat"><b data-count="{{ transactions|selectattr('transaction_type','equalto','ยืม')|list|length }}">0</b><span>ยืมยา</span></div>
+    <div class="stat"><b data-count="{{ transactions|selectattr('transaction_type','equalto','ขอ')|list|length }}">0</b><span>ขอยา</span></div>
+    <div class="stat hot"><b data-count="{{ transactions|selectattr('cancelled','equalto',1)|list|length }}">0</b><span>ยกเลิกแล้ว</span></div>
+  </div>
+
+  <div class="card">
+    <div class="title-row">
+      <div><h2>📋 ประวัติการทำรายการ</h2><p>แสดงข้อมูลครั้งละ 10 รายการ</p></div>
+      <div class="search"><span class="si">🔍</span>
+        <input type="text" id="searchInput" placeholder="ค้นหาชื่อยา / ผู้ทำรายการ..." autocomplete="off"></div>
+    </div>
+
+    <div class="table-wrap">
+      <table style="min-width:1000px">
+        <thead><tr><th>ลำดับ</th><th>วัน / เวลา</th><th>ผู้ทำรายการ</th><th>ยา</th><th>จำนวน</th><th>ประเภท</th><th>สถานะ</th><th>การจัดการ</th></tr></thead>
+        <tbody id="transactionBody">
+        {% for transaction in transactions %}
+          <tr class="transaction-row">
+            <td style="color:var(--muted);font-weight:600">{{ transaction["id"] }}</td>
+            <td>{{ transaction["transaction_date"] }}</td>
+            <td>{{ transaction["requester"] }}</td>
+            <td>{{ transaction["drug_name"] or "ไม่พบข้อมูลยา" }}</td>
+            <td><span class="num">{{ "%.2f"|format(transaction["quantity"]) }}</span> {{ transaction["drug_unit"] or "" }}</td>
+            <td>
+              {% if transaction["transaction_type"] == "ยืม" %}<span class="badge b-org">ยืม</span>
+              {% elif transaction["transaction_type"] == "ขอ" %}<span class="badge b-info">ขอ</span>
+              {% elif transaction["transaction_type"].startswith("คืน") %}<span class="badge b-ok">คืน</span>
+              {% elif transaction["transaction_type"] == "ยกเลิก" %}<span class="badge b-bad">ยกเลิก</span>
+              {% else %}<span class="badge">{{ transaction["transaction_type"] }}</span>{% endif %}
+            </td>
+            <td>
+              {% if transaction["cancelled"] == 1 %}<span class="badge b-bad">ยกเลิกแล้ว</span>
+              {% else %}<span class="badge b-ok">ปกติ</span>{% endif %}
+            </td>
+            <td>
+              <form action="{{ url_for('delete_transaction') }}" method="POST" onsubmit="return confirmDelete();">
+                <input type="hidden" name="transaction_id" value="{{ transaction['id'] }}">
+                <button type="submit" class="btn-danger btn-sm">🗑️ ลบ</button>
+              </form>
+            </td>
+          </tr>
+        {% else %}
+          <tr><td colspan="8" class="empty"><div class="e-ico">📭</div><h3>ยังไม่มีประวัติ</h3><div>ยังไม่มีรายการใช้งานในระบบ</div></td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager">
+      <div class="info-t" id="pageInfo">กำลังแสดงรายการ</div>
+      <div class="pages" id="pagination"></div>
+    </div>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const rows = Array.from(document.querySelectorAll(".transaction-row"));
+  const searchInput = document.getElementById("searchInput");
+  const pagination = document.getElementById("pagination");
+  const pageInfo = document.getElementById("pageInfo");
+  const itemsPerPage = 10;
+  let currentPage = 1;
+  let filteredRows = [...rows];
+
+  function displayRows() {
+    rows.forEach(function (row) { row.style.display = "none"; });
+    if (filteredRows.length === 0) {
+      pageInfo.textContent = rows.length ? "ไม่พบรายการที่ค้นหา" : "";
+      pagination.innerHTML = "";
+      return;
+    }
+    const totalPages = Math.ceil(filteredRows.length / itemsPerPage);
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * itemsPerPage;
+    const end = start + itemsPerPage;
+    filteredRows.slice(start, end).forEach(function (row) { row.style.display = "table-row"; });
+    pageInfo.textContent = `แสดง ${start + 1}-${Math.min(end, filteredRows.length)} จาก ${filteredRows.length} รายการ`;
+    createPagination(totalPages);
+  }
+
+  function makeBtn(label, disabled, onclick, active) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "page-button" + (active ? " active" : "");
+    b.textContent = label;
+    b.disabled = disabled;
+    b.onclick = onclick;
+    return b;
+  }
+
+  function createPagination(totalPages) {
+    pagination.innerHTML = "";
+    if (totalPages <= 1) return;
+    pagination.appendChild(makeBtn("‹", currentPage === 1, function () { currentPage--; displayRows(); }));
+    for (let page = 1; page <= totalPages; page++) {
+      pagination.appendChild(makeBtn(page, false, function () { currentPage = page; displayRows(); }, page === currentPage));
+    }
+    pagination.appendChild(makeBtn("›", currentPage === totalPages, function () { currentPage++; displayRows(); }));
+  }
+
+  searchInput.addEventListener("input", function () {
+    const keyword = this.value.toLowerCase().trim();
+    filteredRows = rows.filter(function (row) { return row.textContent.toLowerCase().includes(keyword); });
+    currentPage = 1;
+    displayRows();
+  });
+
+  function confirmDelete() {
+    return confirm("⚠️ ยืนยันการลบประวัติรายการนี้หรือไม่?\n\nข้อมูลประวัติจะถูกลบออกจากระบบ และไม่สามารถกู้คืนได้");
+  }
+
+  displayRows();
+</script>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}คืนยา{% endblock %}
+{% block content %}
+<main class="wrap narrow">
+  <header class="hero"><div class="ico">🔄</div><h1>คืนยา</h1><p>บันทึกยาที่เหลือจากการยืม</p></header>
+  <a href="{{ url_for('home') }}" class="back">← กลับหน้าหลัก</a>
+
+  <div class="info blue">
+    <b>📋 วิธีกรอกเปอร์เซ็นต์</b><br>
+    <b>100%</b> = ยาเหลือเต็ม &nbsp;•&nbsp; <b>80%</b> = เหลือประมาณ 80% &nbsp;•&nbsp; <b>50%</b> = เหลือครึ่งหนึ่ง &nbsp;•&nbsp; <b>0%</b> = ใช้หมดแล้ว<br>
+    ⚠️ ยาทุกชนิดจะแยกเป็นรายชิ้น ไม่ว่าจะเป็น เม็ด ขวด หลอด กล่อง หรือหน่วยอื่น ๆ
+  </div>
+
+  {% if loans %}
+    {% for loan in loans %}
+    <div class="card loan">
+      <div class="loan-head">
+        <div class="big-ico">💊</div>
+        <div><h2>{{ loan["drug_name"] }}</h2><p>รายการยืมที่รอการคืน</p></div>
+      </div>
+
+      <div class="details">
+        <div class="detail"><small>👤 ผู้ยืม</small><b>{{ loan["borrower"] }}</b></div>
+        <div class="detail"><small>📦 จำนวนที่ยืม</small><b>{{ loan["quantity"]|float|round(2) }} {{ loan["drug_unit"] }}</b></div>
+        <div class="detail"><small>📅 วันที่ยืม</small><b>{{ loan["borrow_date"] }}</b></div>
+      </div>
+
+      <form action="{{ url_for('return_drug_submit') }}" method="POST">
+        <input type="hidden" name="loan_id" value="{{ loan['id'] }}">
+
+        {% if loan["loan_units"] %}
+        <div class="unit-sec">
+          <h3 style="margin:0 0 4px">🔍 คืนยาเป็นรายชิ้น</h3>
+          <p class="desc" style="margin-bottom:16px">กรอกเปอร์เซ็นต์ยาที่เหลือของ <b>แต่ละชิ้น</b> (กดปุ่มลัดได้)</p>
+
+          {% for unit in loan["loan_units"] %}
+          <div class="unit">
+            <div class="unit-top">
+              <span>💊 {{ loan["drug_unit"] }} ที่ {{ unit["unit_number"] }}</span>
+              <span class="badge b-ok">รายการที่ {{ unit["unit_number"] }}</span>
+            </div>
+            <label>ยาที่เหลือ (%)</label>
+            <div class="pct-row">
+              <input type="number" class="pct" name="unit_{{ unit['id'] }}" min="0" max="100" step="1" placeholder="เช่น 80" required>
+              <div class="chips">
+                <button type="button" class="chip" data-v="0">0</button>
+                <button type="button" class="chip" data-v="50">50</button>
+                <button type="button" class="chip" data-v="100">100</button>
+              </div>
+            </div>
+            <div class="bar"><i></i></div>
+            <div class="hint">กรอกค่าระหว่าง 0–100%</div>
+          </div>
+          {% endfor %}
+
+          <div class="info warn" style="margin:16px 0 0">
+            💡 <b>ตัวอย่าง</b><br>
+            รายการที่ 1 → 80% &nbsp;•&nbsp; รายการที่ 2 → 50% &nbsp;•&nbsp; รายการที่ 3 → 100%<br>
+            ระบบจะคำนวณจำนวนที่คืนเข้าสต๊อกจากเปอร์เซ็นต์ของแต่ละรายการอัตโนมัติ
+          </div>
+        </div>
+
+        <button type="submit" class="btn-ok block" style="margin-top:20px">✅ ยืนยันคืนยา</button>
+        {% else %}
+        <div class="info warn">⚠️ รายการนี้ยังไม่มีข้อมูลแยกเป็นรายชิ้น</div>
+        {% endif %}
+      </form>
+    </div>
+    {% endfor %}
+  {% else %}
+    <div class="card empty"><div class="e-ico">🎉</div><h3>ไม่มีรายการยาที่รอคืน</h3><div>ขณะนี้ไม่มีรายการยาที่ต้องดำเนินการคืน</div></div>
+  {% endif %}
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll(".unit").forEach(function (u) {
+    var inp = u.querySelector(".pct"), bar = u.querySelector(".bar > i");
+    function sync() {
+      var v = parseFloat(inp.value);
+      bar.style.width = (isNaN(v) ? 0 : Math.max(0, Math.min(100, v))) + "%";
+    }
+    inp.addEventListener("input", sync);
+    u.querySelectorAll(".chip").forEach(function (c) {
+      c.addEventListener("click", function () { inp.value = c.dataset.v; sync(); inp.focus(); });
+    });
+  });
+</script>
+{% endblock %}

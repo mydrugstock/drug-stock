@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}ระบบจัดกล่องยา{% endblock %}
+{% block content %}
+<main class="wrap">
+  <header class="hero"><div class="ico">🗃️</div><h1>ระบบจัดกล่องยา</h1><p>กำหนดสูตรยา จัดกล่อง และติดตามกล่องที่กำลังยืม</p></header>
+  <a href="{{ url_for('home') }}" class="back">← กลับหน้าหลัก</a>
+
+  <!-- 1. กำหนดสูตร -->
+  <div class="card">
+    <h2><span class="sec-num">1</span> กำหนดรายการยาใน 1 กล่อง</h2>
+    <p class="desc">กำหนดว่ายาแต่ละชนิดต้องใช้จำนวนเท่าไรต่อกล่อง ระบบจะใช้สูตรนี้ในการจัดกล่องอัตโนมัติ</p>
+
+    <form method="POST" action="{{ url_for('save_box_template') }}">
+      <div id="drug-container">
+        <div class="drug-row">
+          <select name="drug_id[]" class="drug-select" required>
+            <option value="">-- เลือกยา --</option>
+            {% for drug in drugs %}
+              <option value="{{ drug['id'] }}">{{ drug['name'] }} ({{ drug['unit'] }})</option>
+            {% endfor %}
+          </select>
+          <input type="number" name="quantity_per_box[]" step="0.01" min="0.01" placeholder="จำนวนต่อ 1 กล่อง" required>
+          <button type="button" class="remove-drug btn-danger" onclick="removeDrugRow(this)">🗑️ ลบ</button>
+        </div>
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn-ghost" onclick="addDrugRow()">➕ เพิ่มยา</button>
+        <button type="submit" class="btn-ok">💾 บันทึกสูตรกล่อง</button>
+      </div>
+    </form>
+
+    <form method="POST" action="{{ url_for('reset_box_template') }}" style="margin-top:12px"
+          onsubmit="return confirm('⚠️ ต้องการรีเซ็ตสูตรการจัดกล่องใช่หรือไม่?');">
+      <button type="submit" class="btn-danger btn-sm">🗑️ รีเซ็ตสูตรกล่อง</button>
+    </form>
+  </div>
+
+  <!-- สูตรปัจจุบัน -->
+  <div class="card">
+    <h2>📋 สูตรของ 1 กล่อง</h2>
+    {% if box_items %}
+    <div class="table-wrap" style="margin-top:14px">
+      <table>
+        <thead><tr><th class="l">ยา</th><th>จำนวนต่อกล่อง</th></tr></thead>
+        <tbody>
+        {% for item in box_items %}
+          <tr>
+            <td class="l"><strong>{{ item['drug_name'] }}</strong></td>
+            <td><span class="num hot">{{ item['quantity_per_box'] }}</span> {{ item['drug_unit'] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="e-ico">📋</div>ยังไม่ได้กำหนดสูตรยา</div>
+    {% endif %}
+  </div>
+
+  <!-- 2. จัดกล่อง -->
+  <div class="card">
+    <h2><span class="sec-num">2</span> จัดกล่องใหม่</h2>
+    <p class="desc">ระบบจะนำยาตามสูตรออกจากสต๊อก และสร้างกล่องใหม่จำนวน 1 ใบ</p>
+    <div class="info">💡 <strong>ก่อนจัดกล่อง</strong><br>ตรวจสอบให้แน่ใจว่าสต๊อกมียาครบตามสูตร และมีจำนวนเพียงพอสำหรับจัดกล่อง</div>
+
+    <form method="POST" action="{{ url_for('create_box') }}">
+      <div class="borrower-form">
+        <div class="f">
+          <label>ผู้ยืม</label>
+          <input type="text" name="borrower" placeholder="กรอกชื่อผู้ยืม" required>
+        </div>
+        <button type="submit" onclick="return confirm('📦 ต้องการจัดกล่อง 1 ใบให้ผู้ยืมคนนี้ใช่หรือไม่?');">📦 จัด 1 กล่อง</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 3. ชุดกล่องที่ยืม -->
+  <div class="card">
+    <h2><span class="sec-num">3</span> ชุดกล่องที่กำลังยืม / รอคืน</h2>
+    <p class="desc">สรุปจำนวนกล่องของผู้ยืมแต่ละรายการ</p>
+    {% if box_loans %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="l">ผู้ยืม</th><th>จำนวนทั้งหมด</th><th>คืนแล้ว</th><th>เหลือ</th><th>วันที่ยืม</th></tr></thead>
+        <tbody>
+        {% for loan in box_loans %}
+          <tr>
+            <td class="l"><strong>{{ loan['borrower'] }}</strong></td>
+            <td><span class="num">{{ loan['total_boxes'] }}</span></td>
+            <td>{{ loan['returned_boxes'] }}</td>
+            <td><span class="num hot">{{ loan['remaining_boxes'] }}</span></td>
+            <td>{{ loan['borrow_date'] }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="e-ico">📦</div>ไม่มีชุดกล่องที่กำลังยืม</div>
+    {% endif %}
+  </div>
+
+  <!-- 4. กล่องแต่ละใบ -->
+  <div class="card">
+    <h2><span class="sec-num">4</span> กล่องแต่ละใบที่รอคืน</h2>
+    <div class="info blue" style="margin-top:14px">
+      💡 <strong>วิธีคืนกล่อง</strong><br>
+      เลือกคืนทีละกล่อง เมื่อเข้าหน้าคืน ให้กรอกว่า <b>ยาแต่ละชนิดเหลือจริงเท่าไร</b><br>
+      ระบบจะคำนวณจำนวนที่ใช้ไป และนำยาที่เหลือกลับเข้าสต๊อกให้อัตโนมัติ
+    </div>
+    {% if box_units %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="l">ผู้ยืม</th><th>กล่องที่</th><th>วันที่ยืม</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody>
+        {% for box in box_units %}
+          <tr>
+            <td class="l"><strong>{{ box['borrower'] }}</strong></td>
+            <td><span class="num">📦 กล่องที่ {{ box['box_number'] }}</span></td>
+            <td>{{ box['borrow_date'] }}</td>
+            <td>
+              {% if box['status'] == 'รอคืน' %}<span class="badge b-warn">⏳ รอคืน</span>
+              {% else %}<span class="badge b-ok">✓ {{ box['status'] }}</span>{% endif %}
+            </td>
+            <td><a class="btn btn-ok btn-sm" href="{{ url_for('return_box_page', box_unit_id=box['id']) }}">🔄 คืนกล่องนี้</a></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="e-ico">✅</div>ไม่มีกล่องที่รอคืน</div>
+    {% endif %}
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function addDrugRow() {
+  const container = document.getElementById("drug-container");
+  const row = document.createElement("div");
+  row.className = "drug-row";
+  row.innerHTML = `
+    <select name="drug_id[]" class="drug-select" required>
+      <option value="">-- เลือกยา --</option>
+      {% for drug in drugs %}
+        <option value="{{ drug['id'] }}">{{ drug['name'] }} ({{ drug['unit'] }})</option>
+      {% endfor %}
+    </select>
+    <input type="number" name="quantity_per_box[]" step="0.01" min="0.01" placeholder="จำนวนต่อ 1 กล่อง" required>
+    <button type="button" class="remove-drug btn-danger" onclick="removeDrugRow(this)">🗑️ ลบ</button>
+  `;
+  container.appendChild(row);
+  row.querySelector("select").focus();
+  updateRemoveButtons();
+}
+
+function removeDrugRow(button) {
+  const container = document.getElementById("drug-container");
+  if (container.querySelectorAll(".drug-row").length <= 1) {
+    alert("⚠️ ต้องมีรายการยาอย่างน้อย 1 รายการ");
+    return;
+  }
+  button.closest(".drug-row").remove();
+  updateRemoveButtons();
+}
+
+function updateRemoveButtons() {
+  const rows = document.querySelectorAll(".drug-row");
+  rows.forEach(function (row) {
+    row.querySelector(".remove-drug").style.opacity = rows.length === 1 ? "0.5" : "1";
+  });
+}
+updateRemoveButtons();
+</script>
+{% endblock %}

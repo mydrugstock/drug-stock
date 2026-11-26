@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}คืนกล่องยา{% endblock %}
+{% block content %}
+<main class="wrap narrow">
+  <header class="hero"><div class="ico">🔄</div><h1>คืนกล่องยา</h1><p>ตรวจสอบยาในกล่องและนำจำนวนที่เหลือกลับเข้าสต๊อก</p></header>
+  <a href="{{ url_for('box') }}" class="back">← กลับหน้าจัดกล่อง</a>
+
+  <div class="card">
+    <div class="loan-head">
+      <div class="big-ico">📦</div>
+      <div><h2>คืน กล่องที่ {{ box_unit['box_number'] }}</h2></div>
+    </div>
+
+    <div class="info blue">
+      <b>👤 ผู้ยืม:</b> {{ box_unit['borrower'] }}<br>
+      <b>📅 วันที่ยืม:</b> {{ box_unit['borrow_date'] }}<br>
+      ⚠️ กรุณากรอก "จำนวนยาที่เหลือจริง" ในกล่องที่นำมาคืน<br>
+      ระบบจะคำนวณจำนวนยาที่ใช้ไป และนำจำนวนยาที่เหลือกลับเข้าสต๊อกให้อัตโนมัติ
+    </div>
+
+    <form id="returnBoxForm" method="POST" action="{{ url_for('return_box') }}">
+      <input type="hidden" name="box_unit_id" value="{{ box_unit['id'] }}">
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="l">💊 ยา</th><th>ตอนยืม</th><th>เหลือเมื่อคืน</th><th>หน่วย</th></tr></thead>
+          <tbody>
+          {% for item in items %}
+            <tr>
+              <td class="l"><strong>{{ item['drug_name'] }}</strong></td>
+              <td><span class="num">{{ item['original_quantity'] }}</span></td>
+              <td>
+                <input type="number" name="remaining_{{ item['id'] }}" min="0" max="{{ item['original_quantity'] }}"
+                       step="0.01" value="{{ item['original_quantity'] }}" class="remaining-input" required>
+              </td>
+              <td style="color:var(--muted)">{{ item['drug_unit'] }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="info warn" style="margin:18px 0 0">
+        💡 <b>ตัวอย่าง:</b> ถ้ายาตอนยืมมี 10 เม็ด และนำกลับมาเหลือ 7 เม็ด ให้กรอก <b>7</b><br>
+        ระบบจะถือว่าใช้ไป 3 เม็ด และนำ 7 เม็ดกลับเข้าสต๊อก
+      </div>
+
+      <div class="actions">
+        <button type="submit" class="btn-ok">✅ ยืนยันคืนกล่อง</button>
+        <a class="btn btn-ghost" href="{{ url_for('box') }}">← ยกเลิก</a>
+      </div>
+    </form>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.getElementById("returnBoxForm").addEventListener("submit", function (e) {
+    if (!confirm("ตรวจสอบจำนวนยาที่เหลือทุกชนิดแล้วใช่หรือไม่?\n\nเมื่อยืนยัน ระบบจะคืนกล่องและปรับสต๊อกยา")) {
+      e.preventDefault();
+    }
+  });
+</script>
+{% endblock %}

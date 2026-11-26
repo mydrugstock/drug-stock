@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}ยืม / ขอยา{% endblock %}
+{% block content %}
+<main class="wrap narrow">
+  <header class="hero"><div class="ico">💊</div><h1>ยืม / ขอยา</h1><p>ระบบจัดการการยืมและขอยา</p></header>
+  <a href="{{ url_for('home') }}" class="back">← กลับหน้าหลัก</a>
+
+  <div class="card">
+    <h2>📋 ทำรายการ</h2>
+    <p class="desc">กรอกข้อมูลด้านล่างเพื่อยืมหรือขอยา</p>
+
+    <form id="borrowForm" action="{{ url_for('request_drug') }}" method="POST">
+      <div class="field">
+        <label>ชื่อผู้ขอ <span class="req">*</span></label>
+        <input type="text" name="requester" placeholder="กรอกชื่อผู้ขอ" required>
+      </div>
+
+      <div class="field">
+        <label>ประเภท <span class="req">*</span></label>
+        <div class="type-buttons">
+          <div class="type-option">
+            <input type="radio" id="typeBorrow" name="transaction_type" value="ยืม" checked>
+            <label for="typeBorrow" class="type-label">🔄 ยืมยา</label>
+          </div>
+          <div class="type-option">
+            <input type="radio" id="typeRequest" name="transaction_type" value="ขอ">
+            <label for="typeRequest" class="type-label">📦 ขอยา</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>เลือกยา <span class="req">*</span></label>
+        <div class="search"><span class="si">🔍</span>
+          <input type="text" id="drugSearch" placeholder="พิมพ์ชื่อยาเพื่อค้นหา..." autocomplete="off">
+        </div>
+
+        <div class="drug-list" id="drugList">
+          {% for drug in drugs %}
+          <div class="drug-item" data-id="{{ drug['id'] }}" data-name="{{ drug['name'] | lower }}"
+               data-unit="{{ drug['unit'] }}" data-quantity="{{ drug['quantity'] }}" onclick="selectDrug(this)">
+            <div class="drug-name">{{ drug['name'] }}</div>
+            <div class="drug-stock">เหลือ {{ drug['quantity'] }} {{ drug['unit'] }}</div>
+          </div>
+          {% endfor %}
+          <div class="no-result" id="noResult" style="display:none;">🔍 ไม่พบยาที่ค้นหา</div>
+        </div>
+
+        <input type="hidden" name="drug_id" id="drug_id" required>
+        <div class="selected-drug" id="selectedDrug">✅ เลือก: <strong id="selectedDrugName"></strong></div>
+      </div>
+
+      <div class="field">
+        <label>จำนวน <span class="req">*</span></label>
+        <input type="number" name="quantity" id="quantity" min="1" step="1" placeholder="กรอกจำนวน" required>
+        <div class="hint">💡 ระบุจำนวนที่ต้องการยืมหรือขอ</div>
+      </div>
+
+      <button type="submit" class="block">✅ ยืนยันรายการ</button>
+    </form>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const searchInput = document.getElementById("drugSearch");
+  const drugItems = document.querySelectorAll(".drug-item");
+  const noResult = document.getElementById("noResult");
+
+  searchInput.addEventListener("input", function () {
+    const keyword = this.value.toLowerCase().trim();
+    let found = 0;
+    drugItems.forEach(function (item) {
+      if (item.dataset.name.includes(keyword)) { item.style.display = "flex"; found++; }
+      else { item.style.display = "none"; }
+    });
+    noResult.style.display = found === 0 ? "block" : "none";
+  });
+
+  function selectDrug(item) {
+    document.getElementById("drug_id").value = item.dataset.id;
+    document.getElementById("selectedDrugName").textContent =
+      item.querySelector(".drug-name").textContent.trim();
+    document.getElementById("selectedDrug").style.display = "block";
+    drugItems.forEach(function (d) { d.classList.remove("selected"); });
+    item.classList.add("selected");
+  }
+
+  document.getElementById("borrowForm").addEventListener("submit", function (event) {
+    if (!document.getElementById("drug_id").value) {
+      event.preventDefault();
+      alert("กรุณาเลือกยาก่อน");
+    }
+  });
+</script>
+{% endblock %}

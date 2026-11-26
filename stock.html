@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}สต๊อกยา{% endblock %}
+{% block content %}
+<main class="wrap">
+  <header class="hero"><div class="ico">📦</div><h1>สต๊อกยา</h1><p>เพิ่ม ลบ และตรวจสอบจำนวนยาที่มีอยู่ในระบบ</p></header>
+  <a href="{{ url_for('home') }}" class="back">← กลับหน้าหลัก</a>
+
+  {% set ns = namespace(low=0, out=0) %}
+  {% for d in drugs %}{% if d['quantity'] <= 0 %}{% set ns.out = ns.out + 1 %}{% elif d['quantity'] <= d['min_quantity'] %}{% set ns.low = ns.low + 1 %}{% endif %}{% endfor %}
+  <div class="stats">
+    <div class="stat"><b data-count="{{ drugs|length }}">0</b><span>รายการยาทั้งหมด</span></div>
+    <div class="stat {{ 'hot' if ns.low }}"><b data-count="{{ ns.low }}">0</b><span>ใกล้หมด</span></div>
+    <div class="stat {{ 'hot' if ns.out }}"><b data-count="{{ ns.out }}">0</b><span>หมดแล้ว</span></div>
+  </div>
+
+  <div class="card">
+    <h2>➕ เพิ่มยาเข้าสต๊อก</h2>
+    <p class="desc">ถ้าชื่อและหน่วยตรงกับที่มีอยู่ ระบบจะรวมจำนวนให้อัตโนมัติ</p>
+    <form method="POST" action="{{ url_for('add_drug') }}">
+      <div class="grid-form">
+        <div><label>ชื่อยา <span class="req">*</span></label><input name="name" placeholder="เช่น Paracetamol" required></div>
+        <div><label>จำนวน <span class="req">*</span></label><input name="quantity" type="number" step="any" min="0" placeholder="0" required></div>
+        <div><label>หน่วย <span class="req">*</span></label><input name="unit" placeholder="เช่น เม็ด, ขวด, หลอด" required></div>
+        <div><label>จำนวนขั้นต่ำ <span class="req">*</span></label><input name="min_quantity" type="number" step="any" min="0" placeholder="0" required></div>
+      </div>
+      <div class="actions"><button type="submit">💾 บันทึก</button></div>
+    </form>
+  </div>
+
+  <div class="card">
+    <div class="title-row">
+      <div><h2>📋 รายการยาในสต๊อก</h2><p>ทั้งหมด {{ drugs|length }} รายการ</p></div>
+      <div class="search"><span class="si">🔍</span><input type="text" id="stockSearch" placeholder="ค้นหาชื่อยา..." autocomplete="off"></div>
+    </div>
+
+    {% if drugs %}
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th class="l">ชื่อยา</th><th>คงเหลือ</th><th>ขั้นต่ำ</th><th>สถานะ</th><th>จัดการ</th></tr></thead>
+        <tbody id="stockBody">
+        {% for d in drugs %}
+          <tr>
+            <td class="l"><strong>{{ d['name'] }}</strong></td>
+            <td><span class="num {{ 'hot' if d['quantity'] <= d['min_quantity'] }}">{{ '%g'|format(d['quantity']) }}</span> {{ d['unit'] }}</td>
+            <td>{{ '%g'|format(d['min_quantity']) }} {{ d['unit'] }}</td>
+            <td>
+              {% if d['quantity'] <= 0 %}<span class="badge b-bad pulse">หมดแล้ว</span>
+              {% elif d['quantity'] <= d['min_quantity'] %}<span class="badge b-warn">ใกล้หมด</span>
+              {% else %}<span class="badge b-ok">ปกติ</span>{% endif %}
+            </td>
+            <td>
+              <form method="POST" action="{{ url_for('delete_drug', drug_id=d['id']) }}"
+                    onsubmit="return confirm('ลบ {{ d['name']|e }} ออกจากสต๊อกใช่หรือไม่?');">
+                <button type="submit" class="btn-danger btn-sm">🗑️ ลบ</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty"><div class="e-ico">📭</div><h3>ยังไม่มียาในสต๊อก</h3><div>เพิ่มยารายการแรกจากฟอร์มด้านบนได้เลย</div></div>
+    {% endif %}
+  </div>
+
+  <div class="card" style="border-color:rgba(255,107,94,.3)">
+    <h2>⚠️ โซนอันตราย</h2>
+    <p class="desc">ลบข้อมูลทั้งหมด (ยา ประวัติ การยืม กล่อง) และไม่สามารถกู้คืนได้</p>
+    <form method="POST" action="{{ url_for('reset_all') }}"
+          onsubmit="return confirm('⚠️ ต้องการรีเซ็ตข้อมูลทั้งหมดใช่หรือไม่?\n\nข้อมูลทุกอย่างจะถูกลบและกู้คืนไม่ได้') && confirm('ยืนยันอีกครั้ง: ลบทุกอย่างจริง ๆ ใช่หรือไม่?');">
+      <button type="submit" class="btn-danger">🗑️ รีเซ็ตข้อมูลทั้งหมด</button>
+    </form>
+  </div>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  (function () {
+    var s = document.getElementById("stockSearch"), b = document.getElementById("stockBody");
+    if (!s || !b) return;
+    s.addEventListener("input", function () {
+      var k = this.value.toLowerCase().trim();
+      b.querySelectorAll("tr").forEach(function (r) {
+        r.style.display = r.textContent.toLowerCase().includes(k) ? "" : "none";
+      });
+    });
+  })();
+</script>
+{% endblock %}
